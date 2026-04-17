@@ -128,8 +128,12 @@
                 loadJob();
             }
             const hash = location.hash.slice(1);
-            if (hash && ['scenes', 'characters', 'objects', 'backgrounds', 'style'].includes(hash)) {
-                showTab(hash);
+            if (hash) {
+                const [hashJob, hashTab] = hash.split('/');
+                if (hashJob) select.value = hashJob;
+                if (hashTab && ['scenes', 'characters', 'objects', 'backgrounds', 'style'].includes(hashTab)) {
+                    loadJob().then(() => showTab(hashTab));
+                }
             }
         }
 
@@ -147,7 +151,9 @@
 
         function showTab(tab) {
             currentTab = tab;
-            history.replaceState(null, '', `#${currentJob.job_id}/${tab}`);
+            if (currentJob && currentJob.job_id) {
+                history.replaceState(null, '', `#${currentJob.job_id}/${tab}`);
+            }
             document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
             document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
             document.getElementById(tab + '-tab').classList.add('active');
@@ -197,7 +203,7 @@ const src = ad.has_gen ? `/pipeline/${currentJob.job_id}/assets/${ad.type}s/gen/
                     </div>
                     <div class="scene-composite">
                         <strong>Composite keyframe:</strong>
-                        ${pkg.keyframe_image ? `<img src="/${encodeURIComponent(pkg.keyframe_image)}" class="composite-preview">` : '<div class="no-composite">Select assets & generate</div>'}
+                        ${pkg.keyframe_image ? `<img src="/pipeline/${currentJob.job_id}/${pkg.keyframe_image}" class="composite-preview">` : '<div class="no-composite">Select assets & generate</div>'}
                         <textarea id="comp_prompt_${pkg.shot_id}" placeholder="Composite caption...">${pkg.composite_prompt || ''}</textarea>
                         <button class="btn btn-secondary" id="comp_${pkg.shot_id}" onclick="generateComposite('${pkg.shot_id}')">Gen Composite</button>
                     </div>

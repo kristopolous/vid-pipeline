@@ -730,10 +730,12 @@ async def regenerate_composite(job_id: str, shot_id: str):
         raise HTTPException(status_code=500, detail=f"Composite failed: {e}")
 
     if composite_path:
-        package["keyframe_image"] = str(composite_path.relative_to(job_dir))
+        rel_path = composite_path.relative_to(job_dir)
+        package["keyframe_image"] = str(rel_path)
+        logger.info(f"Saving composite: {rel_path}")
         with open(scene_file, "w") as f:
             json.dump(package, f, indent=2)
-        return {"status": "ok", "keyframe_image": str(composite_path.relative_to(job_dir))}
+        return {"status": "ok", "keyframe_image": str(rel_path)}
     else:
         raise HTTPException(status_code=500, detail="Failed to generate composite - no assets found")
 
