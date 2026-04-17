@@ -1,0 +1,23 @@
+[project]
+name = "video-harness"
+version = "0.1.0"
+description = "Video pipeline that converts prose into structured scene packages for video generation"
+requires-python = ">=3.10"
+dependencies = [
+    "fastapi>=0.104.0",
+    "uvicorn>=0.24.0",
+    "pillow>=10.0.0",
+    "numpy>=1.24.0",
+    "openai>=1.12.0",
+    "diffusers>=0.32.0",
+    "torch>=2.4.0",
+    "transformers>=4.46.0",
+    "huggingface-hub>=0.26.0",
+]
+
+[project.scripts]
+vid-harness = "pipeline:main"
+
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"

@@ -1,0 +1,8 @@
+{
+    "text": {
+        "model": "llama.cpp",
+        "url": "http://localhost:11434",
+        "key": null
+    },
+    "brave-api-key": ...
+}
