@@ -2,14 +2,6 @@
 
 Converts prose into structured scene packages for video generation using LTX-2 and FLUX.2-klein-9B.
 
-## Setup
-
-```bash
-cd /mount/volatile/ai/code/vidpipe/pipeline
-source .venv/bin/activate
-pip install -e .
-```
-
 ### Dependencies
 
 - **FLUX.2-klein-9B** (image generation): Accept license at https://huggingface.co/black-forest-labs/FLUX.2-klein-9B
