@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 """FastAPI server for video harness - serves UI and render endpoints."""
 
+from __future__ import annotations
+
 import json
 import logging
 import os
@@ -8,9 +10,12 @@ import sys
 import uuid
 from contextlib import asynccontextmanager
 from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
-from fastapi import FastAPI, HTTPException
+if TYPE_CHECKING:
+    from Wan2GP.shared.api import WanGPSession
+
+from fastapi import FastAPI, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
@@ -110,6 +115,10 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+pipeline_static_path = Path(__file__).parent / "pipeline"
+if pipeline_static_path.exists():
+    app.mount("/pipeline", StaticFiles(directory=pipeline_static_path), name="pipeline")
+
 
 class SubmitJobRequest(BaseModel):
     scene: str | None = None
@@ -153,7 +162,7 @@ async def list_jobs():
 
     jobs = []
     for job_path in sorted(pipeline_dir.iterdir(), key=lambda p: p.stat().st_mtime, reverse=True):
-        if job_path.is_dir() and job_path.name.startswith("id-"):
+        if job_path.is_dir():
             meta_path = job_path / "meta-info.json"
             if meta_path.exists():
                 with open(meta_path) as f:
@@ -178,15 +187,32 @@ async def get_job(job_id: str):
 
     response = {"job_id": job_id, "meta": meta}
 
+    asset_manifest_path = job_dir / "asset_manifest.json"
+    if asset_manifest_path.exists():
+        with open(asset_manifest_path) as f:
+            asset_manifest = json.load(f)
+        for asset in asset_manifest:
+            asset_type = asset.get("type", "")
+            if asset_type in ["character", "object", "background"]:
+                subdir = asset_type + "s"
+                gen_path = job_dir / "assets" / subdir / "gen" / f"{asset['asset_id']}.png"
+                web_path = job_dir / "assets" / subdir / "web" / f"{asset['asset_id']}.png"
+                asset["has_gen"] = gen_path.exists()
+                asset["has_web"] = web_path.exists()
+        response["asset_manifest"] = asset_manifest
+    else:
+        asset_manifest = []
+
     for key, filename in [
         ("script", "script.txt"),
         ("style", "style.txt"),
         ("context", "context.txt"),
         ("action_items", "action_items.json"),
         ("shots", "shots.json"),
-        ("asset_manifest", "asset_manifest.json"),
         ("harness", "harness.json"),
     ]:
+        if key == "asset_manifest":
+            continue
         file_path = job_dir / filename
         if file_path.exists():
             if filename.endswith(".json"):
@@ -199,7 +225,7 @@ async def get_job(job_id: str):
     scene_packages = {}
     scene_dir = job_dir / "scene_packages"
     if scene_dir.exists():
-        for sp_file in scene_dir.glob("shot_*.json"):
+        for sp_file in scene_dir.glob("*.json"):
             with open(sp_file) as f:
                 sp = json.load(f)
                 scene_packages[sp["shot_id"]] = sp
@@ -305,7 +331,7 @@ async def render_scene(request: RenderRequest):
     if request.shot_id:
         scene_files = [scene_dir / f"{request.shot_id}.json"]
     else:
-        scene_files = list(scene_dir.glob("shot_*.json"))
+        scene_files = list(scene_dir.glob("*.json"))
 
     results = []
     for scene_file in scene_files:
@@ -412,6 +438,115 @@ async def update_asset(job_id: str, asset_id: str, request: UpdateAssetRequest):
             json.dump(sp, f, indent=2)
 
     return {"status": "ok", "asset_id": asset_id}
+
+
+@app.post("/api/jobs/{job_id}/assets/{asset_id}/regenerate")
+async def regenerate_asset(job_id: str, asset_id: str):
+    job_dir = get_job_dir(job_id)
+    if not job_dir.exists():
+        raise HTTPException(status_code=404, detail="Job not found")
+
+    manifest_path = job_dir / "asset_manifest.json"
+    if not manifest_path.exists():
+        raise HTTPException(status_code=404, detail="Asset manifest not found")
+
+    with open(manifest_path) as f:
+        assets = json.load(f)
+
+    asset = None
+    for a in assets:
+        if a["asset_id"] == asset_id:
+            asset = a
+            break
+
+    if not asset:
+        raise HTTPException(status_code=404, detail="Asset not found")
+
+    asset_type = asset["type"]
+    subdir = asset_type + "s"
+
+    gen_path = job_dir / "assets" / subdir / "gen" / f"{asset_id}.png"
+    web_path = job_dir / "assets" / subdir / "web" / f"{asset_id}.png"
+
+    if gen_path.exists():
+        gen_path.unlink()
+    if web_path.exists():
+        web_path.unlink()
+
+    asset["has_gen"] = False
+    asset["has_web"] = False
+    asset["needs_regen"] = True
+
+    with open(manifest_path, "w") as f:
+        json.dump(assets, f, indent=2)
+
+    for sp_file in (job_dir / "scene_packages").glob("shot_*.json"):
+        with open(sp_file) as f:
+            sp = json.load(f)
+        for a in sp.get("assets", []):
+            if a["asset_id"] == asset_id:
+                sp["status"] = "stale"
+                break
+        with open(sp_file, "w") as f:
+            json.dump(sp, f, indent=2)
+
+    return {"status": "ok", "asset_id": asset_id, "message": "Asset marked for regeneration"}
+
+
+@app.post("/api/jobs/{job_id}/assets/{asset_id}/upload")
+async def upload_asset_image(job_id: str, asset_id: str, file: UploadFile):
+    job_dir = get_job_dir(job_id)
+    if not job_dir.exists():
+        raise HTTPException(status_code=404, detail="Job not found")
+
+    manifest_path = job_dir / "asset_manifest.json"
+    if not manifest_path.exists():
+        raise HTTPException(status_code=404, detail="Asset manifest not found")
+
+    with open(manifest_path) as f:
+        assets = json.load(f)
+
+    asset = None
+    for a in assets:
+        if a["asset_id"] == asset_id:
+            asset = a
+            break
+
+    if not asset:
+        raise HTTPException(status_code=404, detail="Asset not found")
+
+    content_type = file.content_type or ""
+    if not content_type.startswith("image/"):
+        raise HTTPException(status_code=400, detail="File must be an image")
+
+    asset_type = asset["type"]
+    subdir = asset_type + "s"
+    gen_path = job_dir / "assets" / subdir / "gen" / f"{asset_id}.png"
+
+    gen_path.parent.mkdir(parents=True, exist_ok=True)
+
+    content = await file.read()
+    with open(gen_path, "wb") as f:
+        f.write(content)
+
+    asset["has_gen"] = True
+    asset["has_web"] = False
+    asset["source"] = "uploaded"
+
+    with open(manifest_path, "w") as f:
+        json.dump(assets, f, indent=2)
+
+    for sp_file in (job_dir / "scene_packages").glob("shot_*.json"):
+        with open(sp_file) as f:
+            sp = json.load(f)
+        for a in sp.get("assets", []):
+            if a["asset_id"] == asset_id:
+                sp["status"] = "stale"
+                break
+        with open(sp_file, "w") as f:
+            json.dump(sp, f, indent=2)
+
+    return {"status": "ok", "asset_id": asset_id, "message": "Image uploaded successfully"}
 
 
 @app.post("/api/jobs/{job_id}/harness")

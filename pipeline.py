@@ -159,20 +159,43 @@ class Pipeline:
         return None
 
     def _parse_object_line(self, line: str) -> Object | None:
-        match = re.match(r"(.+?)\s+is\s+(.+)", line.strip())
-        if match:
-            name = match.group(1).strip()
-            rest = match.group(2).strip()
-            if " | " in rest:
-                scene_desc, obj_desc = rest.split(" | ", 1)
-                scene_desc = scene_desc.strip()
-                obj_desc = obj_desc.strip()
+        line = line.strip()
+        if not line:
+            return None
+
+        name = ""
+        obj_desc = ""
+        scene_desc = ""
+
+        if ":" in line:
+            name, rest = line.split(":", 1)
+            name = name.strip()
+            obj_desc = rest.strip()
+        elif "-" in line:
+            name, rest = line.split("-", 1)
+            name = name.strip()
+            obj_desc = rest.strip()
+        elif " | " in line:
+            parts = line.split(" | ")
+            if len(parts) >= 3:
+                name = parts[0].strip()
+                scene_desc = parts[1].strip()
+                obj_desc = parts[2].strip()
             else:
-                scene_desc = ""
-                obj_desc = rest
-            asset_id = f"obj_{name.lower().replace(' ', '_')}"
-            return Object(asset_id=asset_id, name=name, description=obj_desc, scene_description=scene_desc)
-        return None
+                name = parts[0].strip()
+                obj_desc = parts[1].strip()
+        elif " is " in line:
+            name, rest = line.split(" is ", 1)
+            name = name.strip()
+            obj_desc = rest.strip()
+        else:
+            return None
+
+        if not name or not obj_desc:
+            return None
+
+        asset_id = f"obj_{name.lower().replace(' ', '_')}"
+        return Object(asset_id=asset_id, name=name, description=obj_desc, scene_description=scene_desc)
 
     def _parse_background_line(self, line: str) -> Background | None:
         match = re.match(r"(.+?)\s+is\s+(.+)", line.strip())
@@ -210,20 +233,24 @@ class Pipeline:
                         self.characters.append(char)
 
         if objects_file and objects_file.exists():
-            for line in objects_file.read_text().splitlines():
-                line = line.strip()
-                if line:
-                    obj = self._parse_object_line(line)
-                    if obj:
-                        self.objects.append(obj)
+            content = objects_file.read_text().strip()
+            if content:
+                for line in content.splitlines():
+                    line = line.strip()
+                    if line:
+                        obj = self._parse_object_line(line)
+                        if obj:
+                            self.objects.append(obj)
 
         if backgrounds_file and backgrounds_file.exists():
-            for line in backgrounds_file.read_text().splitlines():
-                line = line.strip()
-                if line:
-                    bg = self._parse_background_line(line)
-                    if bg:
-                        self.backgrounds.append(bg)
+            content = backgrounds_file.read_text().strip()
+            if content:
+                for line in content.splitlines():
+                    line = line.strip()
+                    if line:
+                        bg = self._parse_background_line(line)
+                        if bg:
+                            self.backgrounds.append(bg)
 
     def create_job(self) -> str:
         job_id = datetime.now().strftime("%Y-%m-%d-%H-%M-%S")
@@ -298,14 +325,18 @@ Be concise - just the key characters who drive the narrative."""
         job_dir = Path(f"pipeline/{job_id}")
         system_prompt = """Extract notable objects/props from this scene that are visually important for video generation.
 
-For each object provide TWO things separated by " | ":
-1. Scene context: where/how this object appears in the scene (e.g., "on a table at RadioShack" or "being held by a child")
-2. Object description: what the object actually is (e.g., "Compaq portable computer, 1980s style")
+For each object provide:
+1. Object name (simple, brief - what it IS)
+2. Visual description (what it looks like, specific details that identify it)
 
-Format: "object name | scene context | object description"
-Example: "compaq portable | sitting on a table at RadioShack | 1980s beige portable computer with handle"
+Format: "name: description" - one object per line
+Example: "compaq portable: 1980s beige portable computer, 30 pounds with handle"
+Example: "AMC Eagle: 1980s four-wheel-drive station wagon, rust-colored"
+Example: "mouse: early 1980s mechanical computer mouse, beige with cord"
 
-Focus on: electronics, furniture, vehicles, clothing, tools - things that appear in the scene."""
+Be specific - describe it like you're telling someone what to google for a reference image.
+Focus on: electronics, furniture, vehicles, clothing, tools - things that appear in the scene.
+Do NOT include scene context (where it is in the scene) - just what the object IS."""
 
         objects_text = self._llm_call(system_prompt, self.scene)
         (job_dir / "objects.txt").write_text(objects_text)
@@ -405,6 +436,8 @@ Focus on: indoor/outdoor settings, specific locations mentioned, environments wh
             assets_dir = job_dir / "assets"
             for subdir in ["characters", "objects", "backgrounds", "voices"]:
                 (assets_dir / subdir).mkdir(parents=True, exist_ok=True)
+                for kind in ["gen", "web"]:
+                    (assets_dir / subdir / kind).mkdir(exist_ok=True)
 
             assets = json.loads((job_dir / "asset_manifest.json").read_text())
             if not assets:
@@ -416,9 +449,11 @@ Focus on: indoor/outdoor settings, specific locations mentioned, environments wh
             if context_path.exists():
                 context = context_path.read_text().strip()
 
+            year_hint = self._derive_year_hint(context)
             style_directive = self._derive_style_directive(context)
 
             self.logger.info(f"{job_id}: Generating assets")
+            self.logger.info(f"{job_id}: Year hint: {year_hint}")
             self.logger.info(f"{job_id}: Style directive: {style_directive}")
 
             brave_api_key = self.config.get("brave-api-key")
@@ -433,31 +468,43 @@ Focus on: indoor/outdoor settings, specific locations mentioned, environments wh
                     continue
 
                 subdir = asset_type + "s"
-                out_path = assets_dir / subdir / f"{asset_id}.png"
 
                 try:
                     if asset_type == "object":
-                        scene_desc = asset.get("scene_description", "")
                         self.logger.info(f"{job_id}: Searching web for object '{asset_id}'")
                         api_key = brave_api_key or ""
+                        disambiguated = self._disambiguate_object_name(asset["name"], context)
+                        self.logger.info(f"{job_id}: Disambiguated '{asset['name']}' -> '{disambiguated}'")
                         image = self._search_object_image(
-                            asset["name"],
-                            scene_desc,
-                            style_directive,
+                            disambiguated,
+                            year_hint,
                             api_key
                         )
                         if image:
-                            image.save(out_path)
-                            self.logger.info(f"{job_id}: Saved (web) {out_path}")
+                            web_path = assets_dir / subdir / "web" / f"{asset_id}.png"
+                            image.save(web_path)
+                            self._montage_text_label(image, web_path, asset["name"])
+                            self.logger.info(f"{job_id}: Saved (web) {web_path}")
                         else:
-                            self.logger.warning(f"{job_id}: No web image found for {asset_id}, skipping")
+                            self.logger.info(f"{job_id}: No web image found for {asset_id}, skipping")
+                    elif asset_type == "character":
+                        prompt = f"{year_hint}, realistic full color portrait photograph, {description}"
+                        self.logger.info(f"{job_id}: Generating character '{asset_id}': {prompt[:80]}...")
+                        image = self._generate_image(prompt)
+                        if image:
+                            gen_path = assets_dir / subdir / "gen" / f"{asset_id}.png"
+                            image.save(gen_path)
+                            self._montage_text_label(image, gen_path, asset["name"])
+                            self.logger.info(f"{job_id}: Saved (gen) {gen_path}")
                     else:
-                        prompt = f"{style_directive}. {description}"
+                        prompt = f"{year_hint}, {description}"
                         self.logger.info(f"{job_id}: Generating {asset_type} '{asset_id}': {prompt[:80]}...")
                         image = self._generate_image(prompt)
                         if image:
-                            image.save(out_path)
-                            self.logger.info(f"{job_id}: Saved (generated) {out_path}")
+                            gen_path = assets_dir / subdir / "gen" / f"{asset_id}.png"
+                            image.save(gen_path)
+                            self._montage_text_label(image, gen_path, asset["name"])
+                            self.logger.info(f"{job_id}: Saved (gen) {gen_path}")
 
                 except Exception as e:
                     self.logger.error(f"{job_id}: Failed to generate {asset_id}: {e}")
@@ -470,14 +517,38 @@ Focus on: indoor/outdoor settings, specific locations mentioned, environments wh
             self.logger.error(f"{job_id}: Track 2 failed: {e}")
             return False
 
-    def _search_object_image(self, name: str, scene_desc: str, style: str, api_key: str) -> Image.Image | None:
+    def _derive_year_hint(self, context: str) -> str:
+        if not context:
+            return "1980s"
+        prompt = f"""Given this context: "{context[:500]}"
+Extract only the time period/year range for image generation. Be very specific with years if mentioned.
+Just output the year or decade, nothing else. Example outputs: "1982", "late 1970s", "early 1980s"
+"""
+        result = self._llm_call(prompt, "").strip()
+        return result if result else "1980s"
+
+    def _disambiguate_object_name(self, name: str, context: str) -> str:
+        prompt = f"""Given this object name: "{name}"
+And this context: "{context[:500]}"
+
+What would this prompt generate? Would it be ambiguous?
+
+If "mouse" could mean the animal or a computer mouse, "keyboard" could mean musical or computer, etc.
+
+If ambiguous, suggest 2-3 specific adjectives to disambiguate. Output ONLY the suggested phrase, nothing else.
+Example output for "mouse" in 1982 context: "1982 computer mouse"
+Example output for "keyboard" in 1982 context: "computer keyboard"
+Example output for " Jaguar" in 1982 context: "1980s Jaguar car"
+If not ambiguous, output just the name as-is."""
+        result = self._llm_call(prompt, "").strip()
+        return result if result else name
+
+    def _search_object_image(self, name: str, year_hint: str, api_key: str) -> Image.Image | None:
         if not api_key:
             self.logger.warning("No Brave API key configured")
             return None
 
         search_query = f"{name}"
-        if scene_desc:
-            search_query = f"{scene_desc} {name}"
 
         headers = {
             "X-Subscription-Token": api_key,
@@ -499,14 +570,14 @@ Focus on: indoor/outdoor settings, specific locations mentioned, environments wh
                 data = response.json()
                 results = data.get("results", [])
                 if results and len(results) > 0:
-                    image_url = results[0].get("thumbnail", {}).get("url")
+                    thumbnail = results[0].get("thumbnail", {})
+                    image_url = thumbnail.get("src") if isinstance(thumbnail, dict) else None
                     if not image_url:
                         image_url = results[0].get("url")
-                    self.logger.info(f"Found image: {image_url}")
+                    self.logger.info(f"Found image for '{search_query}': {image_url}")
                     img_response = requests.get(image_url, timeout=15)
                     if img_response.status_code == 200:
                         img = Image.open(BytesIO(img_response.content)).convert("RGB")
-                        img = img.resize((512, 512), Image.Resampling.LANCZOS)
                         return img
         except Exception as e:
             self.logger.warning(f"Image search failed: {e}")
@@ -535,14 +606,44 @@ Focus on: indoor/outdoor settings, specific locations mentioned, environments wh
         torch.cuda.empty_cache()
         return image
 
+    def _montage_text_label(self, image: Image.Image, output_path: Path, label: str) -> None:
+        import subprocess
+
+        label_clean = label.strip()
+        temp_path = output_path.with_suffix(".tmp.png")
+        image.save(temp_path)
+
+        cmd = [
+            "convert",
+            "-size", f"{image.width}x50",
+            "-background", "black",
+            "-fill", "white",
+            "-font", "DejaVu-Sans",
+            "-pointsize", "28",
+            "-gravity", "center",
+            f"label:{label_clean}",
+            temp_path,
+            "-append",
+            str(output_path)
+        ]
+        try:
+            subprocess.run(cmd, check=True, capture_output=True)
+            temp_path.unlink()
+        except subprocess.CalledProcessError as e:
+            self.logger.warning(f"ImageMagick montage failed: {e}")
+            if temp_path.exists():
+                temp_path.rename(output_path)
+
     def _derive_style_directive(self, context: str) -> str:
         if not context:
-            return "modern high quality"
+            return "high quality"
         prompt = f"""Given this context: "{context[:500]}"
-Describe the visual style/time period for image generation. Be declarative and concise, under 10 words. Example: "1980s suburban mall aesthetic with warm tones"
+Describe the visual style and aesthetic for image generation. Be declarative and concise, under 10 words.
+Example: "suburban mall aesthetic with warm tones" or "corporate office with fluorescent lighting"
+Do NOT include years or time periods - just the visual style/aesthetic.
 """
         result = self._llm_call(prompt, "").strip()
-        return result if result else "modern high quality"
+        return result if result else "high quality"
 
     def run_track1(self, job_id: str) -> bool:
         self.logger.info(f"Running Track 1 for {job_id}")
