@@ -1,0 +1,339 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Video Harness</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #1a1a1a; color: #e0e0e0; min-height: 100vh; }
+        .container { max-width: 1400px; margin: 0 auto; padding: 20px; }
+        .tabs { display: flex; gap: 4px; margin-bottom: 20px; background: #2a2a2a; padding: 4px; border-radius: 8px; flex-wrap: wrap; }
+        .tab { padding: 10px 20px; cursor: pointer; border-radius: 6px; transition: background 0.2s; border: none; background: transparent; color: #a0a0a0; font-size: 14px; }
+        .tab:hover { background: #3a3a3a; color: #fff; }
+        .tab.active { background: #4a4a4a; color: #fff; }
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+        .job-select { margin-bottom: 20px; display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+        .job-select select { padding: 10px; font-size: 14px; border-radius: 6px; border: 1px solid #444; background: #2a2a2a; color: #fff; min-width: 300px; }
+        .btn { padding: 8px 16px; border-radius: 6px; border: none; cursor: pointer; font-size: 13px; transition: background 0.2s; }
+        .btn-primary { background: #4a7dc4; color: #fff; }
+        .btn-primary:hover { background: #5a8dd4; }
+        .btn-primary:disabled { background: #3a3a3a; color: #666; cursor: not-allowed; }
+        .btn-secondary { background: #4a4a4a; color: #fff; }
+        .btn-secondary:hover { background: #5a5a5a; }
+
+        .scene-grid { display: flex; flex-direction: column; gap: 16px; }
+        .scene-row { display: grid; grid-template-columns: 180px 1fr 260px 320px; gap: 16px; background: #2a2a2a; border-radius: 8px; padding: 16px; align-items: start; }
+        .scene-row h3 { color: #fff; margin: 0; font-size: 14px; }
+        .scene-row p { font-size: 11px; color: #aaa; margin: 4px 0; }
+        .scene-row .timing { font-size: 10px; color: #666; }
+        .scene-row .actions { display: flex; gap: 6px; flex-wrap: wrap; }
+
+        .scene-assets strong, .scene-composite strong, .scene-render strong { display: block; font-size: 11px; color: #888; margin-bottom: 8px; }
+        .asset-select-grid { display: flex; flex-wrap: wrap; gap: 6px; }
+        .asset-thumb { width: 70px; cursor: pointer; border: 2px solid transparent; border-radius: 4px; overflow: hidden; background: #222; }
+        .asset-thumb:hover { border-color: #666; }
+        .asset-thumb.selected { border-color: #4a7dc4; }
+        .asset-thumb img { width: 100%; height: 50px; object-fit: cover; }
+        .asset-thumb .asset-label { font-size: 9px; color: #ccc; text-align: center; padding: 2px; }
+        .asset-thumb .no-img { width: 100%; height: 50px; display: flex; align-items: center; justify-content: center; font-size: 9px; color: #666; }
+
+        .composite-preview { width: 100%; border-radius: 4px; background: #000; }
+        .no-composite { font-size: 11px; color: #666; padding: 30px 0; text-align: center; }
+        .scene-composite textarea { width: 100%; font-size: 11px; padding: 6px; border-radius: 4px; background: #333; color: #fff; border: 1px solid #444; margin: 8px 0; }
+
+        .scene-render textarea { width: 100%; min-height: 60px; font-size: 11px; padding: 8px; border-radius: 4px; background: #333; color: #fff; border: 1px solid #444; }
+        .video-preview { width: 100%; border-radius: 4px; margin-top: 8px; }
+
+        .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 16px; }
+        .card { background: #2a2a2a; border-radius: 8px; padding: 12px; }
+        .card h3 { color: #fff; margin-bottom: 8px; font-size: 14px; display: flex; align-items: center; gap: 8px; }
+        .card img { width: 100%; aspect-ratio: 16/9; object-fit: cover; border-radius: 4px; background: #000; margin-bottom: 8px; }
+        .card p { font-size: 12px; color: #aaa; }
+        .card .input-group { margin-bottom: 8px; }
+        .card .input-group label { font-size: 10px; color: #666; display: block; margin-bottom: 2px; }
+        .card input, .card textarea { width: 100%; padding: 6px; font-size: 12px; border-radius: 4px; border: 1px solid #444; background: #333; color: #fff; }
+
+        .source-badge { font-size: 9px; padding: 2px 4px; border-radius: 3px; }
+        .source-badge.generated { background: #2d5a2d; color: #7c7; }
+        .source-badge.web { background: #4a4a2d; color: #ca7; }
+        .source-badge.uploaded { background: #2d2d5a; color: #77c; }
+        .source-badge.url { background: #5a2d4a; color: #c7c; }
+
+        .error { background: #5a2d2d; padding: 12px; border-radius: 6px; color: #c77; }
+        .empty { text-align: center; padding: 40px; color: #666; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div id="error" class="error" style="display: none;"></div>
+        <div class="job-select">
+            <select id="jobSelect" onchange="loadJob()">
+                <option value="">Select a job...</option>
+            </select>
+            <button class="btn btn-secondary" onclick="loadJobs()">Refresh</button>
+        </div>
+        <div class="tabs">
+            <button class="tab active" onclick="showTab('scenes')">Scenes</button>
+            <button class="tab" onclick="showTab('characters')">Characters</button>
+            <button class="tab" onclick="showTab('objects')">Objects</button>
+            <button class="tab" onclick="showTab('backgrounds')">Backgrounds</button>
+            <button class="tab" onclick="showTab('style')">Style</button>
+        </div>
+        <div id="scenes" class="tab-content active">
+            <div id="scenesGrid" class="scene-grid"></div>
+        </div>
+        <div id="characters" class="tab-content">
+            <div id="charactersGrid" class="grid"></div>
+        </div>
+        <div id="objects" class="tab-content">
+            <div id="objectsGrid" class="grid"></div>
+        </div>
+        <div id="backgrounds" class="tab-content">
+            <div id="backgroundsGrid" class="grid"></div>
+        </div>
+        <div id="style" class="tab-content">
+            <div id="styleEditor"></div>
+        </div>
+    </div>
+    <script>
+        let currentJob = null;
+        let currentTab = 'scenes';
+
+        async function api(endpoint, options = {}) {
+            const response = await fetch(`/api${endpoint}`, {
+                headers: { 'Content-Type': 'application/json' },
+                ...options
+            });
+            if (!response.ok) throw new Error((await response.json()).detail || 'API error');
+            return response.json();
+        }
+
+        async function loadJobs() {
+            const jobs = await api('/jobs');
+            const select = document.getElementById('jobSelect');
+            select.innerHTML = '<option value="">Select a job...</option>';
+            jobs.forEach(job => {
+                const opt = document.createElement('option');
+                opt.value = job.job_id;
+                opt.textContent = job.job_id;
+                select.appendChild(opt);
+            });
+            if (jobs.length > 0) {
+                select.value = jobs[0].job_id;
+                loadJob();
+            }
+        }
+
+        async function loadJob() {
+            const jobId = document.getElementById('jobSelect').value;
+            if (!jobId) return;
+            hideError();
+            try {
+                currentJob = await api(`/jobs/${jobId}`);
+                renderAll();
+            } catch (e) {
+                showError(e.message);
+            }
+        }
+
+        function showTab(tab) {
+            currentTab = tab;
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+            document.querySelector(`.tab[onclick="showTab('${tab}')"]`).classList.add('active');
+            document.getElementById(tab).classList.add('active');
+        }
+
+        function renderAll() {
+            renderScenes();
+            renderCharacters();
+            renderObjects();
+            renderBackgrounds();
+            renderStyle();
+        }
+
+        function renderScenes() {
+            const grid = document.getElementById('scenesGrid');
+            const packages = currentJob.scene_packages || {};
+            const renders = currentJob.renders || {};
+            if (!Object.keys(packages).length) {
+                grid.innerHTML = '<div class="empty">No scenes yet</div>';
+                return;
+            }
+            grid.innerHTML = Object.values(packages).sort((a, b) => a.shot_id - b.shot_id).map(pkg => {
+                const status = pkg.status || 'pending';
+                const renderKey = Object.keys(renders).find(k => k.startsWith(String(pkg.shot_id)));
+                const videoSrc = renderKey ? `/${renders[renderKey]}` : null;
+                const assetsHtml = (pkg.assets || []).map(a => {
+                    const ad = (currentJob.asset_manifest || []).find(am => am.asset_id === a.asset_id);
+                    if (!ad) return '';
+                    const src = ad.has_gen ? `/pipeline/${currentJob.job_id}/assets/${ad.type}s/gen/${ad.asset_id}.png` :
+                              ad.has_web ? `/pipeline/${currentJob.job_id}/assets/${ad.type}s/web/${ad.asset_id}.png` : null;
+                    return `<div class="asset-thumb" onclick="toggleSceneAsset('${pkg.shot_id}', '${a.asset_id}')">
+                        ${src ? `<img src="${src}">` : '<div class="no-img">No img</div>'}
+                        <div class="asset-label">${ad.name}</div>
+                    </div>`;
+                }).join('');
+
+                return `<div class="scene-row">
+                    <div class="scene-info">
+                        <h3>Shot ${pkg.shot_id} <span class="source-badge ${status}">${status}</span></h3>
+                        <p>${pkg.duration_seconds}s | ${pkg.shot_type}</p>
+                        <div class="timing">${(pkg.timing_breakdown || []).map(t => `<div>${t.start}-${t.end}: ${t.action}</div>`).join('')}</div>
+                    </div>
+                    <div class="scene-assets">
+                        <strong>Select assets:</strong>
+                        <div class="asset-select-grid">${assetsHtml || 'None'}</div>
+                    </div>
+                    <div class="scene-composite">
+                        <strong>Composite keyframe:</strong>
+                        ${pkg.keyframe_image ? `<img src="/${pkg.keyframe_image}" class="composite-preview">` : '<div class="no-composite">Select assets & generate</div>'}
+                        <textarea id="comp_prompt_${pkg.shot_id}" placeholder="Composite caption...">${pkg.composite_prompt || ''}</textarea>
+                        <button class="btn btn-secondary" onclick="generateComposite('${pkg.shot_id}')">Gen Composite</button>
+                    </div>
+                    <div class="scene-render">
+                        <strong>Video prompt:</strong>
+                        <textarea id="prompt_${pkg.shot_id}">${pkg.full_prompt || ''}</textarea>
+                        <div class="actions">
+                            <button class="btn btn-primary" onclick="renderScene('${pkg.shot_id}')">Gen Video</button>
+                            <button class="btn btn-secondary" onclick="downloadSceneFiles('${pkg.shot_id}')">↓</button>
+                        </div>
+                        ${videoSrc ? `<video src="${videoSrc}" controls class="video-preview"></video>` : ''}
+                    </div>
+                </div>`;
+            }).join('');
+        }
+
+        function renderCharacters() {
+            const grid = document.getElementById('charactersGrid');
+            grid.innerHTML = renderAssetCards('character');
+        }
+
+        function renderObjects() {
+            const grid = document.getElementById('objectsGrid');
+            grid.innerHTML = renderAssetCards('object');
+        }
+
+        function renderBackgrounds() {
+            const grid = document.getElementById('backgroundsGrid');
+            grid.innerHTML = renderAssetCards('background');
+        }
+
+        function renderAssetCards(type) {
+            const assets = (currentJob.asset_manifest || []).filter(a => a.type === type);
+            if (!assets.length) return '<div class="empty">No assets</div>';
+            return assets.map(asset => {
+                const src = asset.has_gen ? `/pipeline/${currentJob.job_id}/assets/${type}s/gen/${asset.asset_id}.png` :
+                          asset.has_web ? `/pipeline/${currentJob.job_id}/assets/${type}s/web/${asset.asset_id}.png` : null;
+                const source = asset.source || (asset.has_gen ? 'generated' : asset.has_web ? 'web' : 'none');
+                return `<div class="card">
+                    <h3>${asset.name} <span class="source-badge ${source}">${source}</span></h3>
+                    ${src ? `<img src="${src}">` : ''}
+                    <div class="input-group"><label>Caption</label><input id="caption_${asset.asset_id}" value="${asset.caption || ''}"></div>
+                    <div class="input-group"><label>Description</label><textarea id="desc_${asset.asset_id}">${asset.visual_description || ''}</textarea></div>
+                    <div class="input-group"><input type="url" id="url_${asset.asset_id}" placeholder="Or paste URL"><button class="btn btn-secondary" onclick="setAssetUrl('${asset.asset_id}')">Use URL</button></div>
+                    <div class="input-group"><input type="file" id="file_${asset.asset_id}"><button class="btn btn-primary" onclick="uploadAssetImage('${asset.asset_id}')">Upload</button></div>
+                    <button class="btn btn-secondary" onclick="updateAsset('${asset.asset_id}')">Regen</button>
+                </div>`;
+            }).join('');
+        }
+
+        function renderStyle() {
+            const container = document.getElementById('styleEditor');
+            const h = currentJob.harness || {};
+            container.innerHTML = `<div class="card">
+                <h3>Style</h3>
+                <div class="input-group"><label>Film Stock</label><input id="harness_film_stock" value="${h.film_stock || ''}"></div>
+                <div class="input-group"><label>Color Palette</label><input id="harness_color_palette" value="${(h.color_palette || []).join(', ')}"></div>
+                <div class="input-group"><label>Lighting</label><input id="harness_lighting_style" value="${h.lighting_style || ''}"></div>
+                <div class="input-group"><label>Aspect Ratio</label><input id="harness_aspect_ratio" value="${h.aspect_ratio || ''}"></div>
+                <div class="input-group"><label>Era</label><input id="harness_era" value="${h.era || ''}"></div>
+                <div class="input-group"><label>Mood</label><input id="harness_mood" value="${h.mood || ''}"></div>
+                <button class="btn btn-primary" onclick="saveHarness()">Save Style</button>
+            </div>`;
+        }
+
+        function showError(msg) {
+            const el = document.getElementById('error');
+            el.textContent = msg;
+            el.style.display = msg ? 'block' : 'none';
+        }
+        function hideError() { showError(''); }
+
+        async function updateAsset(assetId) {
+            const desc = document.getElementById(`desc_${assetId}`).value;
+            const caption = document.getElementById(`caption_${assetId}`).value;
+            await api(`/jobs/${currentJob.job_id}/assets/${assetId}`, { method: 'POST', body: JSON.stringify({ description: desc, caption }) });
+            loadJob();
+        }
+
+        async function uploadAssetImage(assetId) {
+            const file = document.getElementById(`file_${assetId}`).files[0];
+            if (!file) return;
+            const fd = new FormData();
+            fd.append('file', file);
+            await fetch(`/api/jobs/${currentJob.job_id}/assets/${assetId}/upload`, { method: 'POST', body: fd });
+            loadJob();
+        }
+
+        async function setAssetUrl(assetId) {
+            const url = document.getElementById(`url_${assetId}`).value.trim();
+            if (!url) return;
+            await api(`/jobs/${currentJob.job_id}/assets/${assetId}/url`, { method: 'POST', body: JSON.stringify({ url }) });
+            loadJob();
+        }
+
+        async function toggleSceneAsset(shotId, assetId, el) {
+            el.classList.toggle('selected');
+            const pkg = currentJob.scene_packages[shotId];
+            const isSel = el.classList.contains('selected');
+            if (isSel) {
+                if (!pkg.assets.some(a => a.asset_id === assetId)) pkg.assets.push({ asset_id: assetId, role: 'selected', file: '' });
+            } else {
+                pkg.assets = pkg.assets.filter(a => a.asset_id !== assetId);
+            }
+            await fetch(`/api/jobs/${currentJob.job_id}/scene_packages/${shotId}`, { method: 'PUT', body: JSON.stringify(pkg) });
+        }
+
+        async function generateComposite(shotId) {
+            try {
+                const resp = await api(`/jobs/${currentJob.job_id}/scene_packages/${shotId}/composite`, { method: 'POST' });
+                if (resp.keyframe_image) loadJob();
+            } catch (e) { showError(e.message); }
+        }
+
+        async function renderScene(shotId) {
+            try {
+                await api('/render', { method: 'POST', body: JSON.stringify({ job_id: currentJob.job_id, shot_id: shotId }) });
+                loadJob();
+            } catch (e) { showError(e.message); }
+        }
+
+        async function downloadSceneFiles(shotId) {
+            const pkg = currentJob.scene_packages[shotId];
+            const blob = new Blob([JSON.stringify(pkg, null, 2)], { type: 'application/json' });
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(blob);
+            a.download = `shot_${shotId}.json`;
+            a.click();
+        }
+
+        async function saveHarness() {
+            const h = {
+                film_stock: document.getElementById('harness_film_stock').value,
+                color_palette: document.getElementById('harness_color_palette').value.split(',').map(s => s.trim()).filter(Boolean),
+                lighting_style: document.getElementById('harness_lighting_style').value,
+                aspect_ratio: document.getElementById('harness_aspect_ratio').value,
+                era: document.getElementById('harness_era').value,
+                mood: document.getElementById('harness_mood').value
+            };
+            await api(`/jobs/${currentJob.job_id}/harness`, { method: 'POST', body: JSON.stringify({ harness: h }) });
+            loadJob();
+        }
+
+        loadJobs();
+    </script>
+</body>
+</html>
