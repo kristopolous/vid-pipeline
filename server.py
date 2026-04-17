@@ -607,7 +607,12 @@ async def set_asset_url(job_id: str, asset_id: str, request: dict):
 
     try:
         import requests
-        img_response = requests.get(url, timeout=15)
+        headers = {
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+            "Accept": "image/avif,image/webp,image/apng,image/svg+xml,image/png,image/jpeg,*/*;q=0.8",
+            "Referer": url,
+        }
+        img_response = requests.get(url, timeout=15, headers=headers)
         if img_response.status_code != 200:
             raise HTTPException(status_code=400, detail=f"Failed to fetch image: {img_response.status_code}")
 
@@ -667,13 +672,28 @@ async def regenerate_composite(job_id: str, shot_id: str):
     with open(scene_file) as f:
         package = json.load(f)
 
-    from pipeline import Pipeline
-    pipeline = Pipeline()
-
     assets_path = job_dir / "asset_manifest.json"
-    assets = json.loads(assets_path.read_text()) if assets_path.exists() else []
+    if not assets_path.exists():
+        raise HTTPException(status_code=400, detail="No asset manifest")
 
-    composite_path = pipeline._composite_scene_image(job_dir, package, assets)
+    assets = json.loads(assets_path.read_text())
+
+    for asset in assets:
+        asset_type = asset.get("type", "")
+        if asset_type in ["character", "object", "background"]:
+            subdir = asset_type + "s"
+            gen_path = job_dir / "assets" / subdir / "gen" / f"{asset['asset_id']}.png"
+            web_path = job_dir / "assets" / subdir / "web" / f"{asset['asset_id']}.png"
+            asset["has_gen"] = gen_path.exists()
+            asset["has_web"] = web_path.exists()
+
+    try:
+        from pipeline import Pipeline
+        pipeline = Pipeline()
+        composite_path = pipeline._composite_scene_image(job_dir, package, assets)
+    except Exception as e:
+        logger.error(f"Composite failed: {e}")
+        raise HTTPException(status_code=500, detail=f"Composite failed: {e}")
 
     if composite_path:
         package["keyframe_image"] = str(composite_path)
@@ -681,7 +701,7 @@ async def regenerate_composite(job_id: str, shot_id: str):
             json.dump(package, f, indent=2)
         return {"status": "ok", "keyframe_image": str(composite_path)}
     else:
-        raise HTTPException(status_code=500, detail="Failed to generate composite")
+        raise HTTPException(status_code=500, detail="Failed to generate composite - no assets found")
 
 
 @app.get("/api/jobs/{job_id}/scene_packages/{shot_id}/download")

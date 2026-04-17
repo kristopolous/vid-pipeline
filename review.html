@@ -244,7 +244,7 @@
                     </div>
                     <div class="actions">
                         <button class="btn btn-gen" id="btn_${asset.asset_id}" onclick="updateAsset('${asset.asset_id}')">Regen</button>
-                        <button class="btn btn-gen" onclick="uploadAssetImage('${asset.asset_id}')">Upload</button>
+                        <button class="btn btn-gen" id="btn_${asset.asset_id}_upload" onclick="uploadAssetImage('${asset.asset_id}')">Upload</button>
                     </div>
                 </div>`;
             }).join('');
@@ -283,18 +283,14 @@
                 await api(`/jobs/${currentJob.job_id}/assets/${assetId}`, { method: 'POST', body: JSON.stringify({ description: desc }) });
                 loadJob();
             } finally {
-                btn.textContent = 'Regen';
-                btn.disabled = false;
                 if (img) img.style.opacity = '1';
-                event.target.textContent = 'Regen';
-                event.target.disabled = false;
             }
         }
 
         async function uploadAssetImage(assetId) {
+            const btn = document.getElementById(`btn_${assetId}_upload`);
             const file = document.getElementById(`file_${assetId}`).files[0];
             if (!file) return;
-            const btn = event.target;
             btn.textContent = 'Uploading...';
             btn.disabled = true;
             const fd = new FormData();

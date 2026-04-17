@@ -657,6 +657,33 @@ If not ambiguous, output just the name as-is."""
             current_y = 0
 
             captions_used = []
+            
+            bg_info = None
+            chars_objs = []
+            
+            for asset_ref in assets_in_shot:
+                if asset_ref.get("role") == "background":
+                    for asset in assets:
+                        if asset["asset_id"] == asset_ref["asset_id"]:
+                            bg_info = asset.get("name", "background")
+                            break
+                else:
+                    for asset in assets:
+                        if asset["asset_id"] == asset_ref["asset_id"]:
+                            role = asset_ref.get("role", "")
+                            name = asset.get("name", "object")
+                            chars_objs.append((role, name))
+                            break
+            
+            flux_parts = []
+            if bg_info:
+                flux_parts.append(f"{bg_info} as background")
+            for role, name in chars_objs:
+                flux_parts.append(f"{name}")
+            
+            auto_composite_prompt = ", ".join(flux_parts)
+            
+            package["composite_prompt"] = package.get("composite_prompt") or auto_composite_prompt
 
             for asset_ref in assets_in_shot:
                 if asset_ref.get("role") == "background":
@@ -668,9 +695,9 @@ If not ambiguous, output just the name as-is."""
                                 img = img.resize((total_width, bg_height), Image.Resampling.LANCZOS)
                                 composite.paste(img, (0, current_y))
                                 current_y += bg_height
-                                cap = asset.get("caption", asset.get("name", ""))
+                                cap = asset.get("name", "")
                                 if cap:
-                                    captions_used.append(cap)
+                                    captions_used.append(f"[{cap}]")
                             break
 
             for asset_ref in assets_in_shot:
@@ -688,9 +715,9 @@ If not ambiguous, output just the name as-is."""
                                 x_offset = (total_width - img.width) // 2
                                 composite.paste(img, (x_offset, current_y))
                                 current_y += target_h
-                                cap = asset.get("caption", asset.get("name", ""))
+                                cap = asset.get("name", "")
                                 if cap:
-                                    captions_used.append(cap)
+                                    captions_used.append(f"[{cap}]")
                             break
 
             try:
