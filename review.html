@@ -205,14 +205,14 @@ const src = ad.has_gen ? `/pipeline/${currentJob.job_id}/assets/${ad.type}s/gen/
                         <strong>Composite keyframe:</strong>
                         ${pkg.keyframe_image ? `<img src="/pipeline/${currentJob.job_id}/${pkg.keyframe_image}" class="composite-preview">` : '<div class="no-composite">Select assets & generate</div>'}
                         <textarea id="comp_prompt_${pkg.shot_id}" rows="3" placeholder="Composite caption...">${pkg.composite_prompt || ''}</textarea>
-                        <button class="btn btn-secondary" id="comp_${pkg.shot_id}" onclick="generateComposite('${pkg.shot_id}')">Gen Composite</button>
+                        <button type="button" class="btn btn-secondary" id="comp_${pkg.shot_id}" onclick="generateComposite('${pkg.shot_id}')">Gen Composite</button>
                     </div>
                     <div class="scene-render">
                         <strong>Video prompt:</strong>
                         <textarea id="prompt_${pkg.shot_id}" rows="12">${pkg.full_prompt || ''}</textarea>
                         <div class="actions">
-                            <button class="btn btn-primary" onclick="renderScene('${pkg.shot_id}')">Gen Video</button>
-                            <button class="btn btn-secondary" onclick="downloadShot('${pkg.shot_id}')">↓</button>
+                            <button type="button" class="btn btn-primary" onclick="renderScene('${pkg.shot_id}')">Gen Video</button>
+                            <button type="button" class="btn btn-secondary" onclick="downloadShot('${pkg.shot_id}')">↓</button>
                         </div>
                         ${videoSrc ? `<video src="${videoSrc}" controls class="video-preview"></video>` : ''}
                     </div>
@@ -259,8 +259,8 @@ const src = ad.has_gen ? `/pipeline/${currentJob.job_id}/assets/${ad.type}s/gen/
                         <input type="file" id="file_${idEsc}" style="flex:1;">
                     </div>
                     <div class="actions">
-                        <button class="btn btn-gen" id="btn_${idEsc}" onclick="updateAsset('${idEsc}')">Regen</button>
-                        <button class="btn btn-gen" id="btn_${idEsc}_upload" onclick="uploadAssetImage('${idEsc}')">Upload</button>
+                        <button type="button" class="btn btn-gen" id="btn_${idEsc}" onclick="updateAsset('${idEsc}')">Regen</button>
+                        <button type="button" class="btn btn-gen" id="btn_${idEsc}_upload" onclick="uploadAssetImage('${idEsc}')">Upload</button>
                     </div>
                 </div>`;
             }).join('');
@@ -346,17 +346,31 @@ const src = ad.has_gen ? `/pipeline/${currentJob.job_id}/assets/${ad.type}s/gen/
         }
 
         async function generateComposite(shotId) {
+            const btn = document.getElementById(`comp_${shotId}`);
+            if (!btn) return;
+            btn.textContent = 'Generating...';
+            btn.disabled = true;
             try {
                 const resp = await api(`/jobs/${currentJob.job_id}/scene_packages/${shotId}/composite`, { method: 'POST' });
                 if (resp.keyframe_image) loadJob();
-            } catch (e) { showError(e.message); }
+            } catch (e) { showError(e.message); } finally {
+                btn.textContent = 'Gen Composite';
+                btn.disabled = false;
+            }
         }
 
         async function renderScene(shotId) {
+            const btn = event.target;
+            const originalText = btn.textContent;
+            btn.textContent = 'Rendering...';
+            btn.disabled = true;
             try {
                 await api('/render', { method: 'POST', body: JSON.stringify({ job_id: currentJob.job_id, shot_id: shotId }) });
                 loadJob();
-            } catch (e) { showError(e.message); }
+            } catch (e) { showError(e.message); } finally {
+                btn.textContent = originalText;
+                btn.disabled = false;
+            }
         }
 
         async function saveHarness() {
