@@ -6,6 +6,7 @@ from __future__ import annotations
 import json
 import logging
 import os
+import subprocess
 import sys
 import uuid
 from contextlib import asynccontextmanager
@@ -35,6 +36,30 @@ logging.basicConfig(
     format="%(asctime)s [%(levelname)s] %(message)s",
 )
 logger = logging.getLogger("server")
+
+
+def add_text_label(input_path: Path, output_path: Path, label: str) -> None:
+    """Add label above image using ImageMagick."""
+    label_clean = label.strip()
+    cmd = [
+        "convert",
+        "-size", "800x50",
+        "-background", "black",
+        "-fill", "white",
+        "-font", "DejaVu-Sans",
+        "-pointsize", "32",
+        "-gravity", "center",
+        f"label:{label_clean}",
+        str(input_path),
+        "-append",
+        str(output_path)
+    ]
+    try:
+        subprocess.run(cmd, check=True, capture_output=True)
+    except subprocess.CalledProcessError as e:
+        logger.warning(f"ImageMagick montage failed: {e}")
+        if input_path != output_path:
+            input_path.rename(output_path)
 
 
 WAN2GP_ROOT = Path(__file__).parent.parent / "Wan2GP"
@@ -135,9 +160,8 @@ class RenderRequest(BaseModel):
 
 
 class UpdateAssetRequest(BaseModel):
-    job_id: str
-    asset_id: str
     description: str | None = None
+    full_prompt: str | None = None
     caption: str | None = None
 
 
@@ -443,6 +467,8 @@ async def update_asset(job_id: str, asset_id: str, request: UpdateAssetRequest):
         if asset["asset_id"] == asset_id:
             if request.description is not None:
                 asset["visual_description"] = request.description
+            if request.full_prompt is not None:
+                asset["full_prompt"] = request.full_prompt
             if request.caption is not None:
                 asset["caption"] = request.caption
             break
@@ -554,6 +580,11 @@ async def upload_asset_image(job_id: str, asset_id: str, file: UploadFile):
     with open(gen_path, "wb") as f:
         f.write(content)
 
+    if asset.get("name"):
+        from PIL import Image
+        img = Image.open(gen_path).convert("RGB")
+        add_text_label(gen_path, gen_path, asset["name"])
+
     asset["has_gen"] = True
     asset["has_web"] = False
     asset["source"] = "uploaded"
@@ -620,6 +651,9 @@ async def set_asset_url(job_id: str, asset_id: str, request: dict):
         from io import BytesIO
         img = Image.open(BytesIO(img_response.content)).convert("RGB")
         img.save(gen_path)
+
+        if asset.get("name"):
+            add_text_label(gen_path, gen_path, asset["name"])
 
         asset["has_gen"] = True
         asset["has_web"] = False
@@ -696,10 +730,10 @@ async def regenerate_composite(job_id: str, shot_id: str):
         raise HTTPException(status_code=500, detail=f"Composite failed: {e}")
 
     if composite_path:
-        package["keyframe_image"] = str(composite_path)
+        package["keyframe_image"] = str(composite_path.relative_to(job_dir))
         with open(scene_file, "w") as f:
             json.dump(package, f, indent=2)
-        return {"status": "ok", "keyframe_image": str(composite_path)}
+        return {"status": "ok", "keyframe_image": str(composite_path.relative_to(job_dir))}
     else:
         raise HTTPException(status_code=500, detail="Failed to generate composite - no assets found")
 

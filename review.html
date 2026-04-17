@@ -78,11 +78,11 @@
             <button class="btn btn-secondary" onclick="loadJobs()">Refresh</button>
         </div>
         <div class="tabs">
-            <button class="tab active" onclick="showTab('scenes')">Scenes</button>
-            <button class="tab" onclick="showTab('characters')">Characters</button>
-            <button class="tab" onclick="showTab('objects')">Objects</button>
-            <button class="tab" onclick="showTab('backgrounds')">Backgrounds</button>
-            <button class="tab" onclick="showTab('style')">Style</button>
+            <button class="tab active" id="scenes-tab" onclick="showTab('scenes')">Scenes</button>
+            <button class="tab" id="characters-tab" onclick="showTab('characters')">Characters</button>
+            <button class="tab" id="objects-tab" onclick="showTab('objects')">Objects</button>
+            <button class="tab" id="backgrounds-tab" onclick="showTab('backgrounds')">Backgrounds</button>
+            <button class="tab" id="style-tab" onclick="showTab('style')">Style</button>
         </div>
         <div id="scenes" class="tab-content active">
             <div id="scenesGrid" class="scene-grid"></div>
@@ -127,6 +127,10 @@
                 select.value = jobs[0].job_id;
                 loadJob();
             }
+            const hash = location.hash.slice(1);
+            if (hash && ['scenes', 'characters', 'objects', 'backgrounds', 'style'].includes(hash)) {
+                showTab(hash);
+            }
         }
 
         async function loadJob() {
@@ -143,9 +147,10 @@
 
         function showTab(tab) {
             currentTab = tab;
+            history.replaceState(null, '', `#${currentJob.job_id}/${tab}`);
             document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
             document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
-            document.querySelector(`.tab[onclick="showTab('${tab}')"]`).classList.add('active');
+            document.getElementById(tab + '-tab').classList.add('active');
             document.getElementById(tab).classList.add('active');
         }
 
@@ -168,12 +173,12 @@
             grid.innerHTML = Object.values(packages).sort((a, b) => a.shot_id - b.shot_id).map(pkg => {
                 const status = pkg.status || 'pending';
                 const renderKey = Object.keys(renders).find(k => k.startsWith(String(pkg.shot_id)));
-                const videoSrc = renderKey ? `/${renders[renderKey]}` : null;
+                const videoSrc = renderKey ? `/${encodeURIComponent(renders[renderKey])}` : null;
                 const assetsHtml = (pkg.assets || []).map(a => {
                     const ad = (currentJob.asset_manifest || []).find(am => am.asset_id === a.asset_id);
                     if (!ad) return '';
-                    const src = ad.has_gen ? `/pipeline/${currentJob.job_id}/assets/${ad.type}s/gen/${ad.asset_id}.png` :
-                              ad.has_web ? `/pipeline/${currentJob.job_id}/assets/${ad.type}s/web/${ad.asset_id}.png` : null;
+const src = ad.has_gen ? `/pipeline/${currentJob.job_id}/assets/${ad.type}s/gen/${encodeURIComponent(ad.asset_id)}.png` :
+                          ad.has_web ? `/pipeline/${currentJob.job_id}/assets/${ad.type}s/web/${encodeURIComponent(ad.asset_id)}.png` : null;
                     return `<div class="asset-thumb ${pkg.assets && pkg.assets.some(x => x.asset_id === a.asset_id) ? 'selected' : ''}" data-shot="${pkg.shot_id}" data-asset="${a.asset_id}" onclick="toggleSceneAsset(this)">
                         ${src ? `<img src="${src}">` : '<div class="no-img">No img</div>'}
                         <div class="asset-label">${ad.name}</div>
@@ -192,9 +197,9 @@
                     </div>
                     <div class="scene-composite">
                         <strong>Composite keyframe:</strong>
-                        ${pkg.keyframe_image ? `<img src="/${pkg.keyframe_image}" class="composite-preview">` : '<div class="no-composite">Select assets & generate</div>'}
+                        ${pkg.keyframe_image ? `<img src="/${encodeURIComponent(pkg.keyframe_image)}" class="composite-preview">` : '<div class="no-composite">Select assets & generate</div>'}
                         <textarea id="comp_prompt_${pkg.shot_id}" placeholder="Composite caption...">${pkg.composite_prompt || ''}</textarea>
-                        <button class="btn btn-secondary" onclick="generateComposite('${pkg.shot_id}')">Gen Composite</button>
+                        <button class="btn btn-secondary" id="comp_${pkg.shot_id}" onclick="generateComposite('${pkg.shot_id}')">Gen Composite</button>
                     </div>
                     <div class="scene-render">
                         <strong>Video prompt:</strong>
@@ -228,23 +233,28 @@
             const assets = (currentJob.asset_manifest || []).filter(a => a.type === type);
             if (!assets.length) return '<div class="empty">No assets</div>';
             return assets.map(asset => {
-                const src = asset.has_gen ? `/pipeline/${currentJob.job_id}/assets/${type}s/gen/${asset.asset_id}.png` :
-                          asset.has_web ? `/pipeline/${currentJob.job_id}/assets/${type}s/web/${asset.asset_id}.png` : null;
+                const idEsc = (asset.asset_id || '').replace(/'/g, "\\'").replace(/`/g, '\\`');
+                const src = asset.has_gen ? `/pipeline/${currentJob.job_id}/assets/${type}s/gen/${encodeURIComponent(idEsc)}.png` :
+                          asset.has_web ? `/pipeline/${currentJob.job_id}/assets/${type}s/web/${encodeURIComponent(idEsc)}.png` : null;
                 const source = asset.source || (asset.has_gen ? 'generated' : asset.has_web ? 'web' : 'none');
-                return `<div class="card" id="card_${asset.asset_id}">
-                    <h3>${asset.name} <span class="source-badge ${source}">${source}</span></h3>
-                    ${src ? `<img src="${src}" id="img_${asset.asset_id}">` : ''}
-                    <div class="input-group"><label>Description</label><textarea id="desc_${asset.asset_id}" rows="4">${asset.visual_description || ''}</textarea></div>
+                const nameEsc = (asset.name || '').replace(/'/g, "\\'").replace(/`/g, '\\`');
+                const descEsc = (asset.visual_description || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+                const fullEsc = (asset.full_prompt || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+                return `<div class="card" id="card_${idEsc}">
+                    <h3>${nameEsc} <span class="source-badge ${source}">${source}</span></h3>
+                    ${src ? `<img src="${src}" id="img_${idEsc}">` : ''}
+                    <div class="input-group"><label>Full Prompt (sent to generator)</label><textarea id="prompt_${idEsc}" rows="3">${fullEsc}</textarea></div>
+                    <div class="input-group"><label>Description (used if full prompt empty)</label><textarea id="desc_${idEsc}" rows="3">${descEsc}</textarea></div>
                     <div class="input-group">
-                        <input type="url" id="url_${asset.asset_id}" placeholder="Paste image URL..." 
-                            oninput="setAssetUrl('${asset.asset_id}', this.value)"
-                            onchange="setAssetUrl('${asset.asset_id}', this.value)"
+                        <input type="url" id="url_${idEsc}" placeholder="Paste image URL..." 
+                            oninput="setAssetUrl('${idEsc}', this.value)"
+                            onchange="setAssetUrl('${idEsc}', this.value)"
                             style="flex:1;margin-right:4px;">
-                        <input type="file" id="file_${asset.asset_id}" style="flex:1;">
+                        <input type="file" id="file_${idEsc}" style="flex:1;">
                     </div>
                     <div class="actions">
-                        <button class="btn btn-gen" id="btn_${asset.asset_id}" onclick="updateAsset('${asset.asset_id}')">Regen</button>
-                        <button class="btn btn-gen" id="btn_${asset.asset_id}_upload" onclick="uploadAssetImage('${asset.asset_id}')">Upload</button>
+                        <button class="btn btn-gen" id="btn_${idEsc}" onclick="updateAsset('${idEsc}')">Regen</button>
+                        <button class="btn btn-gen" id="btn_${idEsc}_upload" onclick="uploadAssetImage('${idEsc}')">Upload</button>
                     </div>
                 </div>`;
             }).join('');
@@ -280,7 +290,8 @@
             if (img) img.style.opacity = '0.5';
             try {
                 const desc = document.getElementById(`desc_${assetId}`).value;
-                await api(`/jobs/${currentJob.job_id}/assets/${assetId}`, { method: 'POST', body: JSON.stringify({ description: desc }) });
+                const prompt = document.getElementById(`prompt_${assetId}`).value;
+                await api(`/jobs/${currentJob.job_id}/assets/${assetId}`, { method: 'POST', body: JSON.stringify({ description: desc, full_prompt: prompt }) });
                 loadJob();
             } finally {
                 if (img) img.style.opacity = '1';

@@ -16,8 +16,9 @@ from io import BytesIO
 from pathlib import Path
 from typing import Any
 
-from openai import OpenAI
 from PIL import Image
+
+OpenAI = None
 
 CONFIG_PATH = Path(__file__).parent / "config.json"
 
@@ -94,15 +95,19 @@ class Pipeline:
         self.logger = logging.getLogger("pipeline")
 
     def _llm_call(self, system_prompt: str, user_prompt: str) -> str:
+        global OpenAI
+        if OpenAI is None:
+            try:
+                from openai import OpenAI
+            except ImportError:
+                raise RuntimeError("OpenAI library not installed. Run: pip install openai")
+
         url = self.text_config.get("url", "http://localhost:11434")
         model = self.text_config.get("model", "llama.cpp")
         api_key = self.text_config.get("key")
 
         full_url = f"{url}/v1/chat/completions"
         self.logger.info(f"LLM Request: URL={full_url}, model={model}")
-
-        if OpenAI is None:
-            raise RuntimeError("OpenAI library not installed. Run: pip install openai")
 
         try:
             client = OpenAI(
@@ -154,7 +159,7 @@ class Pipeline:
         if match:
             name = match.group(1).strip()
             description = match.group(2).strip()
-            asset_id = f"char_{name.lower().replace(' ', '_')}"
+            asset_id = f"char_{re.sub(r'[^a-z0-9_]', '', name.lower().replace(' ', '_'))}"
             return Character(asset_id=asset_id, name=name, description=description)
         return None
 
@@ -194,7 +199,7 @@ class Pipeline:
         if not name or not obj_desc:
             return None
 
-        asset_id = f"obj_{name.lower().replace(' ', '_')}"
+        asset_id = f"obj_{re.sub(r'[^a-z0-9_]', '', name.lower().replace(' ', '_'))}"
         return Object(asset_id=asset_id, name=name, description=obj_desc, scene_description=scene_desc)
 
     def _parse_background_line(self, line: str) -> Background | None:
@@ -202,7 +207,7 @@ class Pipeline:
         if match:
             name = match.group(1).strip()
             description = match.group(2).strip()
-            asset_id = f"bg_{name.lower().replace(' ', '_')}"
+            asset_id = f"bg_{re.sub(r'[^a-z0-9_]', '', name.lower().replace(' ', '_'))}"
             return Background(asset_id=asset_id, name=name, description=description)
         return None
 
@@ -461,9 +466,10 @@ Focus on: indoor/outdoor settings, specific locations mentioned, environments wh
             for asset in assets:
                 asset_id = asset["asset_id"]
                 asset_type = asset["type"]
+                full_prompt = asset.get("full_prompt", "").strip()
                 description = asset.get("visual_description", asset.get("description", ""))
 
-                if not description:
+                if not full_prompt and not description:
                     self.logger.warning(f"{job_id}: No description for {asset_id}, skipping")
                     continue
 
@@ -488,7 +494,7 @@ Focus on: indoor/outdoor settings, specific locations mentioned, environments wh
                         else:
                             self.logger.info(f"{job_id}: No web image found for {asset_id}, skipping")
                     elif asset_type == "character":
-                        prompt = f"{year_hint}, realistic full color portrait photograph, {description}"
+                        prompt = full_prompt or f"{year_hint}, realistic full color portrait photograph, {description}"
                         self.logger.info(f"{job_id}: Generating character '{asset_id}': {prompt[:80]}...")
                         image = self._generate_image(prompt)
                         if image:
@@ -497,7 +503,7 @@ Focus on: indoor/outdoor settings, specific locations mentioned, environments wh
                             self._montage_text_label(image, gen_path, asset["name"])
                             self.logger.info(f"{job_id}: Saved (gen) {gen_path}")
                     else:
-                        prompt = f"{year_hint}, {description}"
+                        prompt = full_prompt or f"{year_hint}, {description}"
                         self.logger.info(f"{job_id}: Generating {asset_type} '{asset_id}': {prompt[:80]}...")
                         image = self._generate_image(prompt)
                         if image:
@@ -1015,7 +1021,7 @@ IMPORTANT: Output ONLY a valid JSON array, nothing else."""
 
                 composite_path = self._composite_scene_image(job_dir, package, assets)
                 if composite_path:
-                    package["keyframe_image"] = str(composite_path)
+                    package["keyframe_image"] = str(composite_path.relative_to(job_dir))
 
                 with open(scene_packages_dir / f"{shot_id}.json", "w") as f:
                     json.dump(package, f, indent=2)
