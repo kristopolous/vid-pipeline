@@ -642,17 +642,21 @@ If not ambiguous, output just the name as-is."""
             if not assets_in_shot:
                 return None
 
-            bg_height = 400
-            char_height = 200
-            obj_height = 120
-            total_width = 1280
+            composite_prompt = package.get("composite_prompt", "")
+            bg_height = 300
+            char_height = 150
+            obj_height = 100
+            caption_height = 40
+            total_width = 1024
             label_height = 50
 
-            total_height = bg_height + char_height + obj_height + label_height
+            total_height = bg_height + char_height + obj_height + caption_height + label_height
             composite = Image.new("RGB", (total_width, total_height), color="black")
             draw = ImageDraw.Draw(composite)
 
             current_y = 0
+
+            captions_used = []
 
             for asset_ref in assets_in_shot:
                 if asset_ref.get("role") == "background":
@@ -664,6 +668,9 @@ If not ambiguous, output just the name as-is."""
                                 img = img.resize((total_width, bg_height), Image.Resampling.LANCZOS)
                                 composite.paste(img, (0, current_y))
                                 current_y += bg_height
+                                cap = asset.get("caption", asset.get("name", ""))
+                                if cap:
+                                    captions_used.append(cap)
                             break
 
             for asset_ref in assets_in_shot:
@@ -681,20 +688,55 @@ If not ambiguous, output just the name as-is."""
                                 x_offset = (total_width - img.width) // 2
                                 composite.paste(img, (x_offset, current_y))
                                 current_y += target_h
+                                cap = asset.get("caption", asset.get("name", ""))
+                                if cap:
+                                    captions_used.append(cap)
                             break
 
             try:
-                font = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", 32)
+                font = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", 28)
             except:
                 font = ImageFont.load_default()
 
-            label_text = f"[ Shot {package['shot_id']} ]"
-            bbox = draw.textbbox((0, 0), label_text, font=font)
+            caption_text = " ".join(captions_used) if captions_used else f"Shot {package['shot_id']}"
+            caption_text = f"[ {caption_text} ]"
+
+            draw.rectangle([(0, current_y), (total_width, current_y + caption_height)], fill="black")
+            bbox = draw.textbbox((0, 0), caption_text, font=font)
             text_w = bbox[2] - bbox[0]
             text_h = bbox[3] - bbox[1]
             text_x = (total_width - text_w) // 2
-            text_y = current_y + (label_height - text_h) // 2
-            draw.text((text_x, text_y), label_text, fill="white", font=font)
+            text_y = current_y + (caption_height - text_h) // 2
+            draw.text((text_x, text_y), caption_text, fill="white", font=font)
+            current_y += caption_height
+
+            if composite_prompt:
+                draw.rectangle([(0, current_y), (total_width, current_y + label_height)], fill="#1a1a1a")
+                small_font = ImageFont.load_default()
+                words = composite_prompt.split()
+                lines = []
+                current_line = ""
+                for word in words:
+                    test_line = current_line + " " + word if current_line else word
+                    if draw.textlength(test_line, font=small_font) < total_width - 20:
+                        current_line = test_line
+                    else:
+                        if current_line:
+                            lines.append(current_line)
+                        current_line = word
+                if current_line:
+                    lines.append(current_line)
+
+                for i, line in enumerate(lines[:2]):
+                    draw.text((10, current_y + i * 16), line, fill="#aaa", font=small_font)
+                current_y += label_height
+
+            label_text = f"Shot {package['shot_id']} | {package.get('shot_type', 'medium')} | {package.get('duration_seconds', 0)}s"
+            draw.rectangle([(0, current_y), (total_width, current_y + label_height)], fill="#111")
+            bbox = draw.textbbox((0, 0), label_text, font=font)
+            text_w = bbox[2] - bbox[0]
+            text_x = (total_width - text_w) // 2
+            draw.text((text_x, current_y + 8), label_text, fill="#888", font=font)
 
             renders_dir = job_dir / "renders"
             renders_dir.mkdir(parents=True, exist_ok=True)
