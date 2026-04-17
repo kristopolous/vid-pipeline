@@ -684,6 +684,45 @@ async def regenerate_composite(job_id: str, shot_id: str):
         raise HTTPException(status_code=500, detail="Failed to generate composite")
 
 
+@app.get("/api/jobs/{job_id}/scene_packages/{shot_id}/download")
+async def download_shot_zip(job_id: str, shot_id: str):
+    import zipfile
+    import io
+
+    job_dir = get_job_dir(job_id)
+    if not job_dir.exists():
+        raise HTTPException(status_code=404, detail="Job not found")
+
+    scene_file = job_dir / "scene_packages" / f"{shot_id}.json"
+    if not scene_file.exists():
+        raise HTTPException(status_code=404, detail="Scene not found")
+
+    with open(scene_file) as f:
+        package = json.load(f)
+
+    buf = io.BytesIO()
+    with zipfile.ZipFile(buf, 'w') as zf:
+        zf.writestr(f"shot_{shot_id}.json", json.dumps(package, indent=2))
+
+        if package.get("keyframe_image"):
+            kf_path = job_dir / package["keyframe_image"]
+            if kf_path.exists():
+                zf.writestr(f"keyframe.png", kf_path.read_bytes())
+
+        for asset_ref in package.get("assets", []):
+            asset_id = asset_ref["asset_id"]
+            for atype in ["characters", "objects", "backgrounds"]:
+                for skind in ["gen", "web"]:
+                    img_path = job_dir / "assets" / atype / skind / f"{asset_id}.png"
+                    if img_path.exists():
+                        zf.writestr(f"assets/{asset_id}_{skind}.png", img_path.read_bytes())
+                        break
+
+    buf.seek(0)
+    from fastapi.responses import Response
+    return Response(content=buf.read(), media_type="application/zip", headers={"Content-Disposition": f"attachment; filename=shot_{shot_id}.zip"})
+
+
 @app.post("/api/jobs/{job_id}/harness")
 async def update_harness(job_id: str, request: UpdateHarnessRequest):
     job_dir = get_job_dir(job_id)

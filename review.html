@@ -20,6 +20,9 @@
         .btn-primary { background: #4a7dc4; color: #fff; }
         .btn-primary:hover { background: #5a8dd4; }
         .btn-primary:disabled { background: #3a3a3a; color: #666; cursor: not-allowed; }
+        .btn-gen { background: #4a7dc4; color: #fff; padding: 8px 16px; border-radius: 6px; border: none; cursor: pointer; font-size: 13px; }
+        .btn-gen:hover { background: #5a8dd4; }
+        .btn-gen:disabled { background: #3a3a3a; color: #666; cursor: not-allowed; }
         .btn-secondary { background: #4a4a4a; color: #fff; }
         .btn-secondary:hover { background: #5a5a5a; }
 
@@ -171,7 +174,7 @@
                     if (!ad) return '';
                     const src = ad.has_gen ? `/pipeline/${currentJob.job_id}/assets/${ad.type}s/gen/${ad.asset_id}.png` :
                               ad.has_web ? `/pipeline/${currentJob.job_id}/assets/${ad.type}s/web/${ad.asset_id}.png` : null;
-                    return `<div class="asset-thumb" onclick="toggleSceneAsset('${pkg.shot_id}', '${a.asset_id}')">
+                    return `<div class="asset-thumb ${pkg.assets && pkg.assets.some(x => x.asset_id === a.asset_id) ? 'selected' : ''}" data-shot="${pkg.shot_id}" data-asset="${a.asset_id}" onclick="toggleSceneAsset(this)">
                         ${src ? `<img src="${src}">` : '<div class="no-img">No img</div>'}
                         <div class="asset-label">${ad.name}</div>
                     </div>`;
@@ -198,7 +201,7 @@
                         <textarea id="prompt_${pkg.shot_id}">${pkg.full_prompt || ''}</textarea>
                         <div class="actions">
                             <button class="btn btn-primary" onclick="renderScene('${pkg.shot_id}')">Gen Video</button>
-                            <button class="btn btn-secondary" onclick="downloadSceneFiles('${pkg.shot_id}')">↓</button>
+                            <button class="btn btn-secondary" onclick="downloadShot('${pkg.shot_id}')">↓</button>
                         </div>
                         ${videoSrc ? `<video src="${videoSrc}" controls class="video-preview"></video>` : ''}
                     </div>
@@ -228,14 +231,21 @@
                 const src = asset.has_gen ? `/pipeline/${currentJob.job_id}/assets/${type}s/gen/${asset.asset_id}.png` :
                           asset.has_web ? `/pipeline/${currentJob.job_id}/assets/${type}s/web/${asset.asset_id}.png` : null;
                 const source = asset.source || (asset.has_gen ? 'generated' : asset.has_web ? 'web' : 'none');
-                return `<div class="card">
+                return `<div class="card" id="card_${asset.asset_id}">
                     <h3>${asset.name} <span class="source-badge ${source}">${source}</span></h3>
-                    ${src ? `<img src="${src}">` : ''}
-                    <div class="input-group"><label>Caption</label><input id="caption_${asset.asset_id}" value="${asset.caption || ''}"></div>
-                    <div class="input-group"><label>Description</label><textarea id="desc_${asset.asset_id}">${asset.visual_description || ''}</textarea></div>
-                    <div class="input-group"><input type="url" id="url_${asset.asset_id}" placeholder="Or paste URL"><button class="btn btn-secondary" onclick="setAssetUrl('${asset.asset_id}')">Use URL</button></div>
-                    <div class="input-group"><input type="file" id="file_${asset.asset_id}"><button class="btn btn-primary" onclick="uploadAssetImage('${asset.asset_id}')">Upload</button></div>
-                    <button class="btn btn-secondary" onclick="updateAsset('${asset.asset_id}')">Regen</button>
+                    ${src ? `<img src="${src}" id="img_${asset.asset_id}">` : ''}
+                    <div class="input-group"><label>Description</label><textarea id="desc_${asset.asset_id}" rows="4">${asset.visual_description || ''}</textarea></div>
+                    <div class="input-group">
+                        <input type="url" id="url_${asset.asset_id}" placeholder="Paste image URL..." 
+                            oninput="setAssetUrl('${asset.asset_id}', this.value)"
+                            onchange="setAssetUrl('${asset.asset_id}', this.value)"
+                            style="flex:1;margin-right:4px;">
+                        <input type="file" id="file_${asset.asset_id}" style="flex:1;">
+                    </div>
+                    <div class="actions">
+                        <button class="btn btn-gen" id="btn_${asset.asset_id}" onclick="updateAsset('${asset.asset_id}')">Regen</button>
+                        <button class="btn btn-gen" onclick="uploadAssetImage('${asset.asset_id}')">Upload</button>
+                    </div>
                 </div>`;
             }).join('');
         }
@@ -263,29 +273,50 @@
         function hideError() { showError(''); }
 
         async function updateAsset(assetId) {
-            const desc = document.getElementById(`desc_${assetId}`).value;
-            const caption = document.getElementById(`caption_${assetId}`).value;
-            await api(`/jobs/${currentJob.job_id}/assets/${assetId}`, { method: 'POST', body: JSON.stringify({ description: desc, caption }) });
-            loadJob();
+            const btn = document.getElementById(`btn_${assetId}`);
+            const img = document.getElementById(`img_${assetId}`);
+            btn.textContent = 'Generating...';
+            btn.disabled = true;
+            if (img) img.style.opacity = '0.5';
+            try {
+                const desc = document.getElementById(`desc_${assetId}`).value;
+                await api(`/jobs/${currentJob.job_id}/assets/${assetId}`, { method: 'POST', body: JSON.stringify({ description: desc }) });
+                loadJob();
+            } finally {
+                btn.textContent = 'Regen';
+                btn.disabled = false;
+                if (img) img.style.opacity = '1';
+                event.target.textContent = 'Regen';
+                event.target.disabled = false;
+            }
         }
 
         async function uploadAssetImage(assetId) {
             const file = document.getElementById(`file_${assetId}`).files[0];
             if (!file) return;
+            const btn = event.target;
+            btn.textContent = 'Uploading...';
+            btn.disabled = true;
             const fd = new FormData();
             fd.append('file', file);
-            await fetch(`/api/jobs/${currentJob.job_id}/assets/${assetId}/upload`, { method: 'POST', body: fd });
+            try {
+                await fetch(`/api/jobs/${currentJob.job_id}/assets/${assetId}/upload`, { method: 'POST', body: fd });
+                loadJob();
+            } finally {
+                btn.textContent = 'Upload';
+                btn.disabled = false;
+            }
+        }
+
+        async function setAssetUrl(assetId, url) {
+            if (!url || !url.trim()) return;
+            await api(`/jobs/${currentJob.job_id}/assets/${assetId}/url`, { method: 'POST', body: JSON.stringify({ url: url.trim() }) });
             loadJob();
         }
 
-        async function setAssetUrl(assetId) {
-            const url = document.getElementById(`url_${assetId}`).value.trim();
-            if (!url) return;
-            await api(`/jobs/${currentJob.job_id}/assets/${assetId}/url`, { method: 'POST', body: JSON.stringify({ url }) });
-            loadJob();
-        }
-
-        async function toggleSceneAsset(shotId, assetId, el) {
+        async function toggleSceneAsset(el) {
+            const shotId = el.dataset.shot;
+            const assetId = el.dataset.asset;
             el.classList.toggle('selected');
             const pkg = currentJob.scene_packages[shotId];
             const isSel = el.classList.contains('selected');
@@ -295,6 +326,10 @@
                 pkg.assets = pkg.assets.filter(a => a.asset_id !== assetId);
             }
             await fetch(`/api/jobs/${currentJob.job_id}/scene_packages/${shotId}`, { method: 'PUT', body: JSON.stringify(pkg) });
+        }
+
+        async function downloadShot(shotId) {
+            window.location.href = `/api/jobs/${currentJob.job_id}/scene_packages/${shotId}/download`;
         }
 
         async function generateComposite(shotId) {
@@ -309,15 +344,6 @@
                 await api('/render', { method: 'POST', body: JSON.stringify({ job_id: currentJob.job_id, shot_id: shotId }) });
                 loadJob();
             } catch (e) { showError(e.message); }
-        }
-
-        async function downloadSceneFiles(shotId) {
-            const pkg = currentJob.scene_packages[shotId];
-            const blob = new Blob([JSON.stringify(pkg, null, 2)], { type: 'application/json' });
-            const a = document.createElement('a');
-            a.href = URL.createObjectURL(blob);
-            a.download = `shot_${shotId}.json`;
-            a.click();
         }
 
         async function saveHarness() {
