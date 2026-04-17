@@ -589,7 +589,7 @@ If not ambiguous, output just the name as-is."""
             self.logger.warning(f"Image search failed: {e}")
         return None
 
-    def _generate_image(self, prompt: str) -> Image.Image | None:
+    def _generate_image(self, prompt: str, ref_image: Image.Image | None = None) -> Image.Image | None:
         from diffusers.pipelines.flux2.pipeline_flux2_klein import Flux2KleinPipeline
         import torch
 
@@ -599,13 +599,17 @@ If not ambiguous, output just the name as-is."""
         )
         pipe.enable_model_cpu_offload()
 
-        result = pipe(
-            prompt=prompt,
-            height=512,
-            width=512,
-            guidance_scale=3.5,
-            num_inference_steps=4,
-        )
+        kwargs = {
+            "prompt": prompt,
+            "height": 512,
+            "width": 512,
+            "guidance_scale": 3.5,
+            "num_inference_steps": 4,
+        }
+        if ref_image:
+            kwargs["image"] = ref_image
+
+        result = pipe(**kwargs)
         image = result.images[0]
 
         del pipe
@@ -773,8 +777,16 @@ If not ambiguous, output just the name as-is."""
 
             renders_dir = job_dir / "renders"
             renders_dir.mkdir(parents=True, exist_ok=True)
+
+            self.logger.info("Generating composite with FLUX using reference...")
+            result = self._generate_image(composite_prompt, ref_image=composite)
             output_path = renders_dir / f"shot_{package['shot_id']}_keyframe.png"
-            composite.save(output_path)
+            if result:
+                result.save(output_path)
+                self.logger.info(f"Saved FLUX composite: {output_path}")
+            else:
+                composite.save(output_path)
+                self.logger.info(f"Saved collage fallback: {output_path}")
             return output_path
 
         except Exception as e:
