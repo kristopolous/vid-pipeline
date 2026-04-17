@@ -634,6 +634,90 @@ If not ambiguous, output just the name as-is."""
             if temp_path.exists():
                 temp_path.rename(output_path)
 
+    def _composite_scene_image(self, job_dir: Path, package: dict, assets: list[dict]) -> Path | None:
+        try:
+            from PIL import Image, ImageDraw, ImageFont
+
+            assets_in_shot = package.get("assets", [])
+            if not assets_in_shot:
+                return None
+
+            bg_height = 400
+            char_height = 200
+            obj_height = 120
+            total_width = 1280
+            label_height = 50
+
+            total_height = bg_height + char_height + obj_height + label_height
+            composite = Image.new("RGB", (total_width, total_height), color="black")
+            draw = ImageDraw.Draw(composite)
+
+            current_y = 0
+
+            for asset_ref in assets_in_shot:
+                if asset_ref.get("role") == "background":
+                    asset_id = asset_ref["asset_id"]
+                    for asset in assets:
+                        if asset["asset_id"] == asset_id:
+                            img = self._load_asset_image(job_dir, asset, "background")
+                            if img:
+                                img = img.resize((total_width, bg_height), Image.Resampling.LANCZOS)
+                                composite.paste(img, (0, current_y))
+                                current_y += bg_height
+                            break
+
+            for asset_ref in assets_in_shot:
+                if asset_ref.get("role") in ("object", "primary_character", "secondary_character"):
+                    asset_id = asset_ref["asset_id"]
+                    asset_type = "object" if asset_ref.get("role") == "object" else "character"
+                    for asset in assets:
+                        if asset["asset_id"] == asset_id:
+                            img = self._load_asset_image(job_dir, asset, asset_type)
+                            if img:
+                                target_h = char_height if asset_type == "character" else obj_height
+                                ratio = target_h / img.height
+                                new_w = int(img.width * ratio)
+                                img = img.resize((new_w, target_h), Image.Resampling.LANCZOS)
+                                x_offset = (total_width - img.width) // 2
+                                composite.paste(img, (x_offset, current_y))
+                                current_y += target_h
+                            break
+
+            try:
+                font = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", 32)
+            except:
+                font = ImageFont.load_default()
+
+            label_text = f"[ Shot {package['shot_id']} ]"
+            bbox = draw.textbbox((0, 0), label_text, font=font)
+            text_w = bbox[2] - bbox[0]
+            text_h = bbox[3] - bbox[1]
+            text_x = (total_width - text_w) // 2
+            text_y = current_y + (label_height - text_h) // 2
+            draw.text((text_x, text_y), label_text, fill="white", font=font)
+
+            renders_dir = job_dir / "renders"
+            renders_dir.mkdir(parents=True, exist_ok=True)
+            output_path = renders_dir / f"shot_{package['shot_id']}_keyframe.png"
+            composite.save(output_path)
+            return output_path
+
+        except Exception as e:
+            self.logger.warning(f"Composite image failed: {e}")
+            return None
+
+    def _load_asset_image(self, job_dir: Path, asset: dict, asset_type: str) -> Image.Image | None:
+        asset_id = asset["asset_id"]
+        subdir = asset_type + "s"
+        gen_path = job_dir / "assets" / subdir / "gen" / f"{asset_id}.png"
+        web_path = job_dir / "assets" / subdir / "web" / f"{asset_id}.png"
+
+        if asset.get("has_gen") and gen_path.exists():
+            return Image.open(gen_path).convert("RGB")
+        elif asset.get("has_web") and web_path.exists():
+            return Image.open(web_path).convert("RGB")
+        return None
+
     def _derive_style_directive(self, context: str) -> str:
         if not context:
             return "high quality"
@@ -859,6 +943,10 @@ IMPORTANT: Output ONLY a valid JSON array, nothing else."""
                     "retry_count": 0,
                     "status": "pending"
                 }
+
+                composite_path = self._composite_scene_image(job_dir, package, assets)
+                if composite_path:
+                    package["keyframe_image"] = str(composite_path)
 
                 with open(scene_packages_dir / f"{shot_id}.json", "w") as f:
                     json.dump(package, f, indent=2)

@@ -13,6 +13,7 @@ dependencies = [
     "torch>=2.4.0",
     "transformers>=4.46.0",
     "huggingface-hub>=0.26.0",
+    "opencv-python>=4.10.0",
 ]
 
 [project.scripts]

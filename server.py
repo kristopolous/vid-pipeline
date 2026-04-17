@@ -138,6 +138,7 @@ class UpdateAssetRequest(BaseModel):
     job_id: str
     asset_id: str
     description: str | None = None
+    caption: str | None = None
 
 
 class UpdateHarnessRequest(BaseModel):
@@ -320,9 +321,6 @@ async def build_scenes(job_id: str):
 
 @app.post("/api/render")
 async def render_scene(request: RenderRequest):
-    if not WAN2GP_AVAILABLE:
-        raise HTTPException(status_code=503, detail="Wan2GP not available")
-
     job_dir = get_job_dir(request.job_id)
     if not job_dir.exists():
         raise HTTPException(status_code=404, detail="Job not found")
@@ -344,52 +342,79 @@ async def render_scene(request: RenderRequest):
 
         retry_count = package.get("retry_count", 0)
 
-        settings = {
-            "model_type": "ltx2_22B_distilled",
-            "prompt": package["full_prompt"],
-            "resolution": "1280x704",
-            "num_inference_steps": 8,
-            "video_length": 97,
-            "duration_seconds": package.get("duration_seconds", 4),
-            "force_fps": 24,
-        }
-
         try:
-            session = RENDER_SESSION or init(
-                root=str(WAN2GP_ROOT),
-                output_dir=str(job_dir / "renders"),
-                console_output=False,
+            from diffusers import LTXVideoPipeline
+            import torch
+
+            pipeline = LTXVideoPipeline.from_pretrained(
+                "Lightricks/LTX-2",
+                torch_dtype=torch.bfloat16,
+            )
+            pipeline.enable_model_cpu_offload()
+            pipeline.enable_vae_spatial_tiling()
+
+            prompt = package["full_prompt"]
+            resolution = package.get("resolution", "1280x704")
+            width, height = map(int, resolution.split("x"))
+            duration = int(package.get("duration_seconds", 4))
+            num_frames = duration * 24
+
+            logger.info(f"Rendering shot {package['shot_id']} with LTX-2: {num_frames} frames, {resolution}")
+
+            output = pipeline(
+                prompt=prompt,
+                negative_prompt=package.get("harness", {}).get("negative_prompt", "anime, cartoon, low quality, distorted"),
+                height=height,
+                width=width,
+                num_frames=num_frames,
+                num_inference_steps=8,
+                guidance_scale=3.5,
             )
 
-            job = session.submit_task(settings)
-
-            for event in job.events.iter(timeout=0.2):
-                if event.kind == "progress":
-                    logger.info(f"Progress: {event.data.phase} - {event.data.progress}%")
-
-            result = job.result()
-
-            if result.success and result.generated_files:
+            frames = output.frames[0]
+            if frames:
                 renders_dir = job_dir / "renders"
                 renders_dir.mkdir(parents=True, exist_ok=True)
-
-                output_path = Path(result.generated_files[0])
                 final_path = renders_dir / f"{package['shot_id']}_take_{retry_count + 1}.mp4"
 
-                if output_path.exists() and output_path != final_path:
-                    import shutil
-                    shutil.copy(output_path, final_path)
+                from PIL import Image
+                import numpy as np
+
+                frames_np = np.stack([np.array(f) for f in frames])
+                import tempfile
+                import subprocess
+
+                with tempfile.NamedTemporaryFile(suffix='.mp4', delete=False) as tmp:
+                    tmp_path = tmp.name
+
+                try:
+                    from moviepy import ImageSequenceClip
+                    clip = ImageSequenceClip(list(frames), fps=24)
+                    clip.write_videofile(tmp_path, codec='libx264', audio=False, logger=None)
+                except ImportError:
+                    import cv2
+                    fourcc = cv2.VideoWriter_fourcc(*'mp4v')
+                    out = cv2.VideoWriter(tmp_path, fourcc, 24, (width, height))
+                    for frame in frames:
+                        frame_bgr = cv2.cvtColor(np.array(frame), cv2.COLOR_RGB2BGR)
+                        out.write(frame_bgr)
+                    out.release()
+
+                import shutil
+                shutil.copy(tmp_path, final_path)
+                Path(tmp_path).unlink()
 
                 package["status"] = "rendered"
                 package["rendered_file"] = str(final_path)
                 package["last_error"] = None
             else:
-                errors = [e.message for e in result.errors]
                 package["status"] = "failed"
-                package["last_error"] = "; ".join(errors)
+                package["last_error"] = "No frames generated"
 
         except Exception as e:
             logger.error(f"Render error: {e}")
+            import traceback
+            logger.error(traceback.format_exc())
             package["status"] = "failed"
             package["last_error"] = str(e)
 
@@ -416,8 +441,10 @@ async def update_asset(job_id: str, asset_id: str, request: UpdateAssetRequest):
 
     for asset in assets:
         if asset["asset_id"] == asset_id:
-            if request.description:
+            if request.description is not None:
                 asset["visual_description"] = request.description
+            if request.caption is not None:
+                asset["caption"] = request.caption
             break
     else:
         raise HTTPException(status_code=404, detail="Asset not found")
@@ -425,15 +452,13 @@ async def update_asset(job_id: str, asset_id: str, request: UpdateAssetRequest):
     with open(manifest_path, "w") as f:
         json.dump(assets, f, indent=2)
 
-    for sp_file in (job_dir / "scene_packages").glob("shot_*.json"):
+    for sp_file in (job_dir / "scene_packages").glob("*.json"):
         with open(sp_file) as f:
             sp = json.load(f)
-
         for a in sp.get("assets", []):
             if a["asset_id"] == asset_id:
                 sp["status"] = "stale"
                 break
-
         with open(sp_file, "w") as f:
             json.dump(sp, f, indent=2)
 
@@ -536,7 +561,7 @@ async def upload_asset_image(job_id: str, asset_id: str, file: UploadFile):
     with open(manifest_path, "w") as f:
         json.dump(assets, f, indent=2)
 
-    for sp_file in (job_dir / "scene_packages").glob("shot_*.json"):
+    for sp_file in (job_dir / "scene_packages").glob("*.json"):
         with open(sp_file) as f:
             sp = json.load(f)
         for a in sp.get("assets", []):
@@ -547,6 +572,116 @@ async def upload_asset_image(job_id: str, asset_id: str, file: UploadFile):
             json.dump(sp, f, indent=2)
 
     return {"status": "ok", "asset_id": asset_id, "message": "Image uploaded successfully"}
+
+
+@app.post("/api/jobs/{job_id}/assets/{asset_id}/url")
+async def set_asset_url(job_id: str, asset_id: str, request: dict):
+    job_dir = get_job_dir(job_id)
+    if not job_dir.exists():
+        raise HTTPException(status_code=404, detail="Job not found")
+
+    manifest_path = job_dir / "asset_manifest.json"
+    if not manifest_path.exists():
+        raise HTTPException(status_code=404, detail="Asset manifest not found")
+
+    with open(manifest_path) as f:
+        assets = json.load(f)
+
+    asset = None
+    for a in assets:
+        if a["asset_id"] == asset_id:
+            asset = a
+            break
+
+    if not asset:
+        raise HTTPException(status_code=404, detail="Asset not found")
+
+    url = request.get("url", "").strip()
+    if not url:
+        raise HTTPException(status_code=400, detail="URL is required")
+
+    asset_type = asset["type"]
+    subdir = asset_type + "s"
+    gen_path = job_dir / "assets" / subdir / "gen" / f"{asset_id}.png"
+    gen_path.parent.mkdir(parents=True, exist_ok=True)
+
+    try:
+        import requests
+        img_response = requests.get(url, timeout=15)
+        if img_response.status_code != 200:
+            raise HTTPException(status_code=400, detail=f"Failed to fetch image: {img_response.status_code}")
+
+        from PIL import Image
+        from io import BytesIO
+        img = Image.open(BytesIO(img_response.content)).convert("RGB")
+        img.save(gen_path)
+
+        asset["has_gen"] = True
+        asset["has_web"] = False
+        asset["source"] = "url"
+
+        with open(manifest_path, "w") as f:
+            json.dump(assets, f, indent=2)
+
+        for sp_file in (job_dir / "scene_packages").glob("*.json"):
+            with open(sp_file) as f:
+                sp = json.load(f)
+            for sp_asset in sp.get("assets", []):
+                if sp_asset["asset_id"] == asset_id:
+                    sp["status"] = "stale"
+                    break
+            with open(sp_file, "w") as f:
+                json.dump(sp, f, indent=2)
+
+        return {"status": "ok", "asset_id": asset_id, "message": "Image URL set successfully"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.put("/api/jobs/{job_id}/scene_packages/{shot_id}")
+async def update_scene_package(job_id: str, shot_id: str, request: dict):
+    job_dir = get_job_dir(job_id)
+    if not job_dir.exists():
+        raise HTTPException(status_code=404, detail="Job not found")
+
+    scene_file = job_dir / "scene_packages" / f"{shot_id}.json"
+    if not scene_file.exists():
+        raise HTTPException(status_code=404, detail="Scene package not found")
+
+    with open(scene_file, "w") as f:
+        json.dump(request, f, indent=2)
+
+    return {"status": "ok", "shot_id": shot_id}
+
+
+@app.post("/api/jobs/{job_id}/scene_packages/{shot_id}/composite")
+async def regenerate_composite(job_id: str, shot_id: str):
+    job_dir = get_job_dir(job_id)
+    if not job_dir.exists():
+        raise HTTPException(status_code=404, detail="Job not found")
+
+    scene_file = job_dir / "scene_packages" / f"{shot_id}.json"
+    if not scene_file.exists():
+        raise HTTPException(status_code=404, detail="Scene package not found")
+
+    with open(scene_file) as f:
+        package = json.load(f)
+
+    from pipeline import Pipeline
+    pipeline = Pipeline()
+
+    assets_path = job_dir / "asset_manifest.json"
+    assets = json.loads(assets_path.read_text()) if assets_path.exists() else []
+
+    composite_path = pipeline._composite_scene_image(job_dir, package, assets)
+
+    if composite_path:
+        package["keyframe_image"] = str(composite_path)
+        with open(scene_file, "w") as f:
+            json.dump(package, f, indent=2)
+        return {"status": "ok", "keyframe_image": str(composite_path)}
+    else:
+        raise HTTPException(status_code=500, detail="Failed to generate composite")
 
 
 @app.post("/api/jobs/{job_id}/harness")
