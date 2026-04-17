@@ -599,11 +599,16 @@ If not ambiguous, output just the name as-is."""
         )
         pipe.enable_model_cpu_offload()
 
+        self.logger.info(f"=== FLUX CALL. Prompt: {prompt[:80]}, ref_image: {ref_image is not None}")
+        if ref_image:
+            self.logger.info(f"Ref image size: {ref_image.size}, mode: {ref_image.mode}")
+            ref_image = ref_image.resize((512, 512), Image.Resampling.LANCZOS)
+            self.logger.info(f"Ref image resized to: {ref_image.size}")
+
         kwargs = {
             "prompt": prompt,
             "height": 512,
             "width": 512,
-            "guidance_scale": 3.5,
             "num_inference_steps": 4,
         }
         if ref_image:
@@ -613,7 +618,9 @@ If not ambiguous, output just the name as-is."""
         image = result.images[0]
 
         del pipe
+        del result
         torch.cuda.empty_cache()
+        torch.cuda.synchronize()
         return image
 
     def _montage_text_label(self, image: Image.Image, output_path: Path, label: str) -> None:
@@ -649,10 +656,14 @@ If not ambiguous, output just the name as-is."""
             from PIL import Image, ImageDraw, ImageFont
 
             assets_in_shot = package.get("assets", [])
+            self.logger.info(f"=== COMPOSITE START. Assets in shot: {len(assets_in_shot)}, job_dir: {job_dir}")
+
             if not assets_in_shot:
+                self.logger.warning("No assets_in_shot")
                 return None
 
             composite_prompt = package.get("composite_prompt", "")
+            self.logger.info(f"Composite prompt: {composite_prompt[:100]}")
             bg_height = 300
             char_height = 150
             obj_height = 100
@@ -675,19 +686,22 @@ If not ambiguous, output just the name as-is."""
                 if asset_ref.get("role") == "background":
                     for asset in assets:
                         if asset["asset_id"] == asset_ref["asset_id"]:
-                            bg_info = asset.get("name", "background")
+                            name = asset.get("name", "background")
+                            desc = asset.get("visual_description", "")
+                            bg_info = f"{name}: {desc}" if desc else name
                             break
                 else:
                     for asset in assets:
                         if asset["asset_id"] == asset_ref["asset_id"]:
                             role = asset_ref.get("role", "")
                             name = asset.get("name", "object")
-                            chars_objs.append((role, name))
+                            desc = asset.get("visual_description", "")
+                            chars_objs.append((role, f"{name} - {desc}" if desc else name))
                             break
             
             flux_parts = []
             if bg_info:
-                flux_parts.append(f"{bg_info} as background")
+                flux_parts.append(f"Background: {bg_info}")
             for role, name in chars_objs:
                 flux_parts.append(f"{name}")
             
