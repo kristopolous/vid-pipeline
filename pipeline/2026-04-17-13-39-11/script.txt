@@ -1,0 +1,103 @@
+FADE IN:
+
+EXT. SUNNYVALE TOWN CENTER MALL - DAY
+
+A 1970s-style indoor mall. Terra cotta tiles. Skylights. Fountains. Middle-class families stroll past. Children run ahead. An elderly man leans on a cane. A woman in $500 designer shoes clicks past.
+
+INT. RADIO SHACK - CONTINUOUS
+
+Consumer electronics line the shelves. TRS-80s, clock radios, coaxial cables. A cheap $160 TANDY COCO 2 sits in a display.
+
+A folding table has been set up near the entrance. On it: A COMPAC PORTABLE, a 30-pound beige luggable computer.
+
+ORION (30s, thoughtful) stands behind the table. The NARRATOR (20s) watches from nearby.
+
+MALL PATRONS approach the table hesitantly. A middle-aged woman sits down for a demo. She presses her fingers against the keys. She drags them across the keyboard, pressing multiple keys at once. She exhales sharply.
+
+ORION watches her.
+
+ORION (quiet)
+When I see a user get frustrated with the software, I think this is the hardest time to listen... and also, the time we must listen the hardest.
+
+The woman jabs at the keys. Nothing happens. Orion studies her.
+
+ORION (CONT'D)
+Look. The user isn't misbehaving. Her attitude is mirroring the machine.
+
+He walks over. Crouches beside her. Makes eye contact.
+
+ORION (CONT'D)
+Our software is the one that is failing you.
+
+She exhales. Her shoulders lower.
+
+Orion drifts toward the store shelves. He trails his hand along the side of a Tandy CoCo 2.
+
+Outside, CHILDREN run past on the tile. Orion gazes into the distance.
+
+ORION
+We work collectively to build things, but also our own individual selves... each with our own dignity and needs.
+
+He turns to the Narrator.
+
+ORION (CONT'D)
+I hear the words "personal computer" and I think about machines that respect each of us as unrepeatable creations. With these machines, do we commodify the human... or accommodate the person?
+
+At the demo table, a MAN picks up the mouse and turns it upside down. He tries to roll it like a trackball.
+
+Orion looks over.
+
+ORION (CONT'D)
+Whether we do or not... this all depends on the choices we make, every day. I need to make the right ones.
+
+Orion steps toward the man. His movements are gentle. He guides the man's hand. Shows him the mouse.
+
+CLOSE ON: Their hands.
+
+The moment stretches. Colors seem richer. The connection between human and machine is tangible, visible. Compassion flows between them.
+
+The moment passes.
+
+EXT. MALL PARKING LOT - LATE AFTERNOON
+
+A 4:00 PM sun slants across the lot. The Narrator hefts the Compaq Portable. He drags it toward an AMC EAGLE.
+
+He loads it into the back. Orion sets a box of materials beside it.
+
+INT. AMC EAGLE - CONTINUOUS
+
+The engine turns over. They pull out of the lot.
+
+NARRATOR
+So what did you think?
+
+ORION
+It's broken.
+
+NARRATOR
+What part?
+
+ORION
+(shrugs)
+The premise. It's not any particular piece. It's the promise we're communicating to the user. We say one thing, the interface says another, and it behaves in yet another. It's within these mixed messages that the opportunity is lost. Everything must be spoken with a single voice.
+
+NARRATOR
+And what does that voice say?
+
+ORION
+I dunno.
+
+A beat.
+
+ORION (CONT'D)
+Hey, look. I care about you. Your stress, anxiety, and suffering... it means something to me. I'm here for you. To support you.
+
+NARRATOR
+You mean like a therapist?
+
+ORION
+No, not exactly. Generous undo. Multiple ways to achieve something. Search and suggest instead of pecking through hierarchies. People use software to get things done. We need to help them get there... and not present intellectual exercises.
+
+The car merges into traffic.
+
+FADE OUT.

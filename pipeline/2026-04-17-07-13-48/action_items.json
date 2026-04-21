@@ -1,0 +1,335 @@
+[
+  {
+    "id": "act_01",
+    "description": "A banner reading 'COMPAQ PORTABLE - NOW AVAILABLE' hangs on display",
+    "duration_estimate_seconds": 3.0,
+    "characters_involved": [],
+    "objects_involved": [
+      "banner"
+    ],
+    "location": "INT. RADIO SHACK"
+  },
+  {
+    "id": "act_02",
+    "description": "A luggable beige suitcase-sized computer sits on display",
+    "duration_estimate_seconds": 3.0,
+    "characters_involved": [],
+    "objects_involved": [
+      "luggable computer"
+    ],
+    "location": "INT. RADIO SHACK"
+  },
+  {
+    "id": "act_03",
+    "description": "A 1982 AMC Eagle sits in the parking lot",
+    "duration_estimate_seconds": 4.0,
+    "characters_involved": [],
+    "objects_involved": [
+      "AMC Eagle"
+    ],
+    "location": "EXT. PARKING LOT"
+  },
+  {
+    "id": "act_04",
+    "description": "A Compaq Portable is dragged across the back seat of the car",
+    "duration_estimate_seconds": 5.0,
+    "characters_involved": [
+      "DRIVER"
+    ],
+    "objects_involved": [
+      "Compaq Portable",
+      "back seat"
+    ],
+    "location": "EXT. PARKING LOT"
+  },
+  {
+    "id": "act_05",
+    "description": "Middle-class shoppers drift past ornate 1970s mall decor",
+    "duration_estimate_seconds": 6.0,
+    "characters_involved": [
+      "shoppers",
+      "seniors",
+      "families",
+      "women"
+    ],
+    "objects_involved": [
+      "tile floors",
+      "fountains"
+    ],
+    "location": "INT. SUNNYVALE TOWN CENTER MALL"
+  },
+  {
+    "id": "act_06",
+    "description": "A folding table with a 'FREE DEMO' sign sits near the store entrance",
+    "duration_estimate_seconds": 3.0,
+    "characters_involved": [],
+    "objects_involved": [
+      "folding table",
+      "sign"
+    ],
+    "location": "INT. RADIO SHACK"
+  },
+  {
+    "id": "act_07",
+    "description": "ORION sets up a computer on the demo table",
+    "duration_estimate_seconds": 6.0,
+    "characters_involved": [
+      "ORION"
+    ],
+    "objects_involved": [
+      "computer",
+      "demo table"
+    ],
+    "location": "INT. RADIO SHACK"
+  },
+  {
+    "id": "act_08",
+    "description": "The MANAGER gives a thumbs up",
+    "duration_estimate_seconds": 2.0,
+    "characters_involved": [
+      "MANAGER"
+    ],
+    "objects_involved": [],
+    "location": "INT. RADIO SHACK"
+  },
+  {
+    "id": "act_09",
+    "description": "A MIDDLE-AGED WOMAN approaches the demo table",
+    "duration_estimate_seconds": 4.0,
+    "characters_involved": [
+      "MIDDLE-AGED WOMAN"
+    ],
+    "objects_involved": [
+      "demo table"
+    ],
+    "location": "INT. RADIO SHACK"
+  },
+  {
+    "id": "act_10",
+    "description": "The woman presses her fingers against the keyboard",
+    "duration_estimate_seconds": 3.0,
+    "characters_involved": [
+      "MIDDLE-AGED WOMAN"
+    ],
+    "objects_involved": [
+      "keyboard"
+    ],
+    "location": "INT. RADIO SHACK"
+  },
+  {
+    "id": "act_11",
+    "description": "The woman drags her palm across the keys pressing them all",
+    "duration_estimate_seconds": 4.0,
+    "characters_involved": [
+      "MIDDLE-AGED WOMAN"
+    ],
+    "objects_involved": [
+      "keyboard"
+    ],
+    "location": "INT. RADIO SHACK"
+  },
+  {
+    "id": "act_12",
+    "description": "The woman's face tightens as the screen stays blank",
+    "duration_estimate_seconds": 3.0,
+    "characters_involved": [
+      "MIDDLE-AGED WOMAN"
+    ],
+    "objects_involved": [
+      "screen"
+    ],
+    "location": "INT. RADIO SHACK"
+  },
+  {
+    "id": "act_13",
+    "description": "The woman presses the keys harder",
+    "duration_estimate_seconds": 3.0,
+    "characters_involved": [
+      "MIDDLE-AGED WOMAN"
+    ],
+    "objects_involved": [
+      "keyboard"
+    ],
+    "location": "INT. RADIO SHACK"
+  },
+  {
+    "id": "act_14",
+    "description": "ORION approaches the woman and makes eye contact",
+    "duration_estimate_seconds": 4.0,
+    "characters_involved": [
+      "ORION",
+      "MIDDLE-AGED WOMAN"
+    ],
+    "objects_involved": [],
+    "location": "INT. RADIO SHACK"
+  },
+  {
+    "id": "act_15",
+    "description": "The woman exhales",
+    "duration_estimate_seconds": 2.0,
+    "characters_involved": [
+      "MIDDLE-AGED WOMAN"
+    ],
+    "objects_involved": [],
+    "location": "INT. RADIO SHACK"
+  },
+  {
+    "id": "act_16",
+    "description": "CHILDREN run past outside the store window",
+    "duration_estimate_seconds": 4.0,
+    "characters_involved": [
+      "CHILDREN"
+    ],
+    "objects_involved": [
+      "store window",
+      "tile floor"
+    ],
+    "location": "INT. RADIO SHACK"
+  },
+  {
+    "id": "act_17",
+    "description": "ORION surveys the store shelves of personal electronics",
+    "duration_estimate_seconds": 5.0,
+    "characters_involved": [
+      "ORION"
+    ],
+    "objects_involved": [
+      "shelves",
+      "personal electronics"
+    ],
+    "location": "INT. RADIO SHACK"
+  },
+  {
+    "id": "act_18",
+    "description": "ORION runs his hand along a Tandy CoCo 2",
+    "duration_estimate_seconds": 4.0,
+    "characters_involved": [
+      "ORION"
+    ],
+    "objects_involved": [
+      "Tandy CoCo 2",
+      "$160 price tag"
+    ],
+    "location": "INT. RADIO SHACK"
+  },
+  {
+    "id": "act_19",
+    "description": "ORION looks at the Tandy",
+    "duration_estimate_seconds": 3.0,
+    "characters_involved": [
+      "ORION"
+    ],
+    "objects_involved": [
+      "Tandy CoCo 2"
+    ],
+    "location": "INT. RADIO SHACK"
+  },
+  {
+    "id": "act_20",
+    "description": "A USER at the demo table turns the mouse upside down",
+    "duration_estimate_seconds": 4.0,
+    "characters_involved": [
+      "USER"
+    ],
+    "objects_involved": [
+      "mouse",
+      "demo table"
+    ],
+    "location": "INT. RADIO SHACK"
+  },
+  {
+    "id": "act_21",
+    "description": "The user rolls the mouse ball with their fingers",
+    "duration_estimate_seconds": 4.0,
+    "characters_involved": [
+      "USER"
+    ],
+    "objects_involved": [
+      "mouse",
+      "mouse ball"
+    ],
+    "location": "INT. RADIO SHACK"
+  },
+  {
+    "id": "act_22",
+    "description": "ORION looks at the confused user",
+    "duration_estimate_seconds": 3.0,
+    "characters_involved": [
+      "ORION",
+      "USER"
+    ],
+    "objects_involved": [],
+    "location": "INT. RADIO SHACK"
+  },
+  {
+    "id": "act_23",
+    "description": "ORION steps toward the confused user with soft movements",
+    "duration_estimate_seconds": 4.0,
+    "characters_involved": [
+      "ORION",
+      "USER"
+    ],
+    "objects_involved": [],
+    "location": "INT. RADIO SHACK"
+  },
+  {
+    "id": "act_24",
+    "description": "ORION's hands adjust the mouse for the user",
+    "duration_estimate_seconds": 5.0,
+    "characters_involved": [
+      "ORION",
+      "USER"
+    ],
+    "objects_involved": [
+      "mouse"
+    ],
+    "location": "INT. RADIO SHACK"
+  },
+  {
+    "id": "act_25",
+    "description": "A wall clock reads 4:00 PM",
+    "duration_estimate_seconds": 2.0,
+    "characters_involved": [],
+    "objects_involved": [
+      "wall clock"
+    ],
+    "location": "EXT. SUNNYVALE TOWN CENTER MALL"
+  },
+  {
+    "id": "act_26",
+    "description": "The Compaq is dragged into the back of the AMC Eagle",
+    "duration_estimate_seconds": 6.0,
+    "characters_involved": [],
+    "objects_involved": [
+      "Compaq Portable",
+      "AMC Eagle"
+    ],
+    "location": "EXT. PARKING LOT"
+  },
+  {
+    "id": "act_27",
+    "description": "The car pulls out of the parking lot",
+    "duration_estimate_seconds": 5.0,
+    "characters_involved": [
+      "DRIVER",
+      "ORION"
+    ],
+    "objects_involved": [
+      "AMC Eagle"
+    ],
+    "location": "INT. AMC EAGLE"
+  },
+  {
+    "id": "act_28",
+    "description": "The car passes under the California sun",
+    "duration_estimate_seconds": 4.0,
+    "characters_involved": [
+      "DRIVER",
+      "ORION"
+    ],
+    "objects_involved": [
+      "AMC Eagle"
+    ],
+    "location": "INT. AMC EAGLE"
+  }
+]

@@ -32,6 +32,8 @@
         .scene-row h3 { color: #fff; margin: 0; font-size: 14px; }
         .scene-row p { font-size: 11px; color: #aaa; margin: 4px 0; }
         .scene-row .timing { font-size: 10px; color: #666; }
+        .scene-row .story-section { font-size: 11px; color: #8ab; margin: 6px 0; line-height: 1.3; }
+        .scene-row .story-section strong { color: #6a9; }
         .scene-row .actions { display: flex; gap: 6px; flex-wrap: wrap; }
 
         .scene-assets strong, .scene-composite strong, .scene-render strong { display: block; font-size: 11px; color: #888; margin-bottom: 8px; }
@@ -169,6 +171,23 @@
             renderStyle();
         }
 
+        function stripMarkdown(text) {
+            if (!text) return '';
+            return text.replace(/^\*\*|(\*\*$)/g, '').replace(/^\*|(\*$)/g, '').replace(/^#+\s*/g, '').replace(/`/g, '').trim();
+        }
+
+        function getActionItemDesc(actionItemId) {
+            const actionItems = currentJob.action_items || [];
+            const item = actionItems.find(ai => ai.id === actionItemId);
+            return item ? item.description : actionItemId;
+        }
+
+        function getShotActionItemIds(shotId) {
+            const shots = currentJob.shots || [];
+            const shot = shots.find(s => s.shot_id === shotId);
+            return shot ? shot.action_item_ids : [];
+        }
+
         function renderScenes() {
             const grid = document.getElementById('scenesGrid');
             const packages = currentJob.scene_packages || {};
@@ -181,14 +200,17 @@
                 const status = pkg.status || 'pending';
                 const renderKey = Object.keys(renders).find(k => k.startsWith(String(pkg.shot_id)));
                 const videoSrc = renderKey ? `/${encodeURIComponent(renders[renderKey])}` : null;
+                const actionItemIds = getShotActionItemIds(pkg.shot_id);
+                const storySection = actionItemIds.map(id => getActionItemDesc(id)).join('; ') || (pkg.timing_breakdown || []).map(t => t.action).join('; ');
                 const assetsHtml = (pkg.assets || []).map(a => {
                     const ad = (currentJob.asset_manifest || []).find(am => am.asset_id === a.asset_id);
                     if (!ad) return '';
-const src = ad.has_gen ? `/pipeline/${currentJob.job_id}/assets/${ad.type}s/gen/${encodeURIComponent(ad.asset_id)}.png` :
-                          ad.has_web ? `/pipeline/${currentJob.job_id}/assets/${ad.type}s/web/${encodeURIComponent(ad.asset_id)}.png` : null;
+                    const src = ad.has_gen ? `/pipeline/${currentJob.job_id}/assets/${ad.type}s/gen/${encodeURIComponent(ad.asset_id)}.png` :
+                                  ad.has_web ? `/pipeline/${currentJob.job_id}/assets/${ad.type}s/web/${encodeURIComponent(ad.asset_id)}.png` : null;
+                    const cleanName = stripMarkdown(ad.name);
                     return `<div class="asset-thumb ${pkg.assets && pkg.assets.some(x => x.asset_id === a.asset_id) ? 'selected' : ''}" data-shot="${pkg.shot_id}" data-asset="${a.asset_id}" onclick="toggleSceneAsset(this)">
                         ${src ? `<img src="${src}">` : '<div class="no-img">No img</div>'}
-                        <div class="asset-label">${ad.name}</div>
+                        <div class="asset-label">${cleanName}</div>
                     </div>`;
                 }).join('');
 
@@ -197,6 +219,7 @@ const src = ad.has_gen ? `/pipeline/${currentJob.job_id}/assets/${ad.type}s/gen/
                         <div class="scene-info">
                             <h3>Shot ${pkg.shot_id} <span class="source-badge ${status}">${status}</span></h3>
                             <p>${pkg.duration_seconds}s | ${pkg.shot_type}</p>
+                            <div class="story-section" title="${storySection.replace(/"/g, '&quot;')}"><strong>Story:</strong> ${storySection}</div>
                             <div class="timing">${(pkg.timing_breakdown || []).map(t => `<div>${t.start}-${t.end}: ${t.action}</div>`).join('')}</div>
                         </div>
                         <div class="scene-assets">
@@ -246,8 +269,10 @@ const src = ad.has_gen ? `/pipeline/${currentJob.job_id}/assets/${ad.type}s/gen/
                 const src = asset.has_gen ? `/pipeline/${currentJob.job_id}/assets/${type}s/gen/${encodeURIComponent(idEsc)}.png` :
                           asset.has_web ? `/pipeline/${currentJob.job_id}/assets/${type}s/web/${encodeURIComponent(idEsc)}.png` : null;
                 const source = asset.source || (asset.has_gen ? 'generated' : asset.has_web ? 'web' : 'none');
-                const nameEsc = (asset.name || '').replace(/'/g, "\\'").replace(/`/g, '\\`');
-                const descEsc = (asset.visual_description || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+                const cleanName = stripMarkdown(asset.name);
+                const nameEsc = (cleanName || '').replace(/'/g, "\\'").replace(/`/g, '\\`');
+                const cleanDesc = stripMarkdown(asset.visual_description);
+                const descEsc = (cleanDesc || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
                 const fullEsc = (asset.full_prompt || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
                 return `<div class="card" id="card_${idEsc}">
                     <h3>${nameEsc} <span class="source-badge ${source}">${source}</span></h3>

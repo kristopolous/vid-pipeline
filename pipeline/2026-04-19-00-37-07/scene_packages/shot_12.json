@@ -1,0 +1,57 @@
+{
+  "shot_id": "shot_12",
+  "duration_seconds": 2.0,
+  "harness": {
+    "film_stock": "35mm film grain",
+    "color_palette": [
+      "cinematic"
+    ],
+    "lighting_style": "cinematic",
+    "aspect_ratio": "16:9",
+    "era": "modern",
+    "mood": "neutral",
+    "negative_prompt": "anime, cartoon, low quality, distorted",
+    "style_description": "",
+    "context_description": "This is taking place in 1982 Menlo Park among the boom in computers at a\nRadioShack in a mall. The Radioshack has cheap consumer products and the mall\nis 1970s style. The people walking around it are normal middle class people."
+  },
+  "assets": [
+    {
+      "asset_id": "char_orion",
+      "role": "primary_character",
+      "file": ""
+    },
+    {
+      "asset_id": "bg_1_radioshack_store",
+      "role": "background",
+      "file": ""
+    },
+    {
+      "asset_id": "bg_2_sunnyvale_town_center_mall",
+      "role": "background",
+      "file": ""
+    },
+    {
+      "asset_id": "bg_3_back_of_the_amc_eagle",
+      "role": "background",
+      "file": ""
+    },
+    {
+      "asset_id": "bg_4_the_office",
+      "role": "background",
+      "file": ""
+    }
+  ],
+  "timing_breakdown": [
+    {
+      "start": "0:00",
+      "end": "0:02",
+      "action": "Orion looks at the Narrator"
+    }
+  ],
+  "full_prompt": "Context: This is taking place in 1982 Menlo Park among the boom in computers at a\nRadioShack in a mall. The Radioshack has cheap consumer products and the mall\nis 1970s style. The people walking around it are normal middle class people.. Film stock: 35mm film grain. Color palette: cinematic. Lighting: cinematic. Era: modern. Mood: neutral. medium shot. 0:00-0:02: Orion looks at the Narrator.",
+  "shot_type": "medium",
+  "retry_count": 0,
+  "status": "pending",
+  "composite_prompt": "Background: 4. **The office**: the narrator's regular workplace mentioned as a comparison point, where the test subjects were less representative of the general public than the mall crowd., Orion - a 30 year old man with a long beard. He is contemplative and a professional",
+  "keyframe_image": "renders/shot_shot_12_keyframe.png"
+}

@@ -1,0 +1,119 @@
+2026-04-17T06:40:25.850390 | script_normalization | input_hash=c3e4e8bcdecb41fd | output_hash=1b694feca4f21d1a
+Output:
+INT. SUNNYVALE TOWN CENTER MALL - DAY
+
+Title card: MENLO PARK, 1982
+
+A 1970s-style indoor mall. Middle-class shoppers of various ages and backgrounds walk the tiled corridors. Some use canes. Others speak foreign languages. A few wear expensive designer shoes. Children run ahead of their parents.
+
+INT. RADIOSHACK - CONTINUOUS
+
+Cheap consumer electronics line the shelves. A TANDY COCO 2 sits priced at $160. Personal gadgets and gizmos clutter the glass display cases.
+
+A TABLE sits set up near the entrance. A COMPaq PORTABLE COMPUTER rests on top, its 30-pound bulk visible. Beside it sits a makeshift demo station for "POTEMKIN" software.
+
+ORION (30s) and COLLEAGUE (20s) stand behind the table. The Compaq's box sits nearby, along with keys to an AMC Eagle parked outside.
+
+MALL VISITORS approach the table. An elderly woman with a cane shuffles past. A middle-aged woman in sensible clothing sits down at the demo.
+
+CLOSE ON: The woman's hands. She drags her fingers across the keyboard, pressing multiple keys at once. Frustration builds on her face. Nothing happens on screen.
+
+ORION watches her struggle. He turns to his colleague.
+
+ORION
+When I see a user get frustrated with the software, I think this is the hardest time to listen. And also, the time we must listen the hardest.
+
+The woman jabs at the keys harder.
+
+ORION (CONT'D)
+Look. The user isn't misbehaving. Her attitude is mirroring the machine.
+
+He approaches her. Makes eye contact. His posture softens.
+
+ORION (CONT'D)
+Our software is the one that failing you.
+
+The woman's shoulders drop. The tension releases.
+
+Orion surveys the store. Personal electronics everywhere. A group of children run past outside on the tile.
+
+He drifts toward a shelf. His hand trails along the side of a TANDY COCO 2.
+
+ORION (CONT'D)
+We work collectively to build things, but also our own individual selves. Each with our own dignity and needs.
+
+He looks at his colleague.
+
+ORION (CONT'D)
+I hear the words "personal computer" and I think about machines that respect each of us as unrepeatable creations. With these machines, do we commodify the human or accommodate the person?
+
+A USER at the demo table turns the mouse upside down. They try to use it as a trackball.
+
+ORION (CONT'D)
+Whether we do or not... this all depends on the choices we make, every day. I need to make the right ones.
+
+Orion steps toward the struggling user. Soft. Humble.
+
+CLOSE ON: Orion's hands guiding the user's hands. The relationship between person and machine becomes tangible. Colors seem more vivid. The moment hangs suspended.
+
+Then it evaporates.
+
+EXT. MALL PARKING LOT - LATER
+
+The sun sits lower in the sky. 4:00 PM.
+
+Orion and his colleague load the Compaq into the back of an AMC Eagle. The heavy computer thuds against the trunk floor.
+
+INT. AMC EAGLE - MOVING - CONTINUOUS
+
+The car pulls out of the lot.
+
+COLLEAGUE
+So what did you think?
+
+ORION
+It's broken.
+
+COLLEAGUE
+What part?
+
+ORION
+The premise.
+
+Orion stares out the window.
+
+ORION (CONT'D)
+It's not any particular piece. It's the promise we're communicating to the user. We say one thing, the interface says another, and it behaves in yet another. It's within these mixed messages that the opportunity is lost. Everything must be spoken with a single voice.
+
+COLLEAGUE
+And what does that voice say?
+
+ORION
+I dunno.
+
+Beat.
+
+ORION (CONT'D)
+Maybe... "Hey, look, I care about you. Your stress, anxiety, and suffering, it means something to me. I'm here for you. To support you."
+
+COLLEAGUE
+You mean like a therapist?
+
+ORION
+No, not exactly.
+
+Orion turns to face his colleague.
+
+ORION (CONT'D)
+Generous undo. Multiple ways to achieve something. Search and suggest instead of pecking through hierarchies. People use software to get things done. We need to help them get there and not present intellectual exercises.
+
+The Eagle disappears into traffic.
+--------------------------------------------------------------------------------
+2026-04-17T06:42:18.553751 | action_itemization | input_hash=1b694feca4f21d1a | output_hash=5f1aad9a38123f9c
+Output:
+[{"id": "act_01", "description": "Middle-class shoppers walk through the tiled corridors of the mall", "duration_estimate_seconds": 6.0, "characters_involved": ["SHOPPERS"], "objects_involved": ["canes", "designer shoes"], "location": "INT. SUNNYVALE TOWN CENTER MALL"}, {"id": "act_02", "description": "Children run ahead of their parents in the mall corridor", "duration_estimate_seconds": 4.0, "characters_involved": ["CHILDREN", "PARENTS"], "objects_involved": [], "location": "INT. SUNNYVALE TOWN CENTER MALL"}, {"id": "act_03", "description": "An elderly woman with a cane shuffles past the RadioShack entrance", "duration_estimate_seconds": 5.0, "characters_involved": ["ELDERLY WOMAN"], "objects_involved": ["cane"], "location": "INT. RADIOSHACK"}, {"id": "act_04", "description": "A middle-aged woman sits down at the demo station", "duration_estimate_seconds": 4.0, "characters_involved": ["MIDDLE-AGED WOMAN"], "objects_involved": ["demo station", "chair"], "location": "INT. RADIOSHACK"}, {"id": "act_05", "description": "The woman drags her fingers across the keyboard pressing multiple keys", "duration_estimate_seconds": 5.0, "characters_involved": ["MIDDLE-AGED WOMAN"], "objects_involved": ["keyboard", "Compaq computer"], "location": "INT. RADIOSHACK"}, {"id": "act_06", "description": "Orion watches the woman struggle at the demo station", "duration_estimate_seconds": 4.0, "characters_involved": ["ORION", "MIDDLE-AGED WOMAN"], "objects_involved": ["demo station"], "location": "INT. RADIOSHACK"}, {"id": "act_07", "description": "Orion turns to his colleague", "duration_estimate_seconds": 2.0, "characters_involved": ["ORION", "COLLEAGUE"], "objects_involved": [], "location": "INT. RADIOSHACK"}, {"id": "act_08", "description": "The woman jabs at the keys harder", "duration_estimate_seconds": 3.0, "characters_involved": ["MIDDLE-AGED WOMAN"], "objects_involved": ["keyboard"], "location": "INT. RADIOSHACK"}, {"id": "act_09", "description": "Orion approaches the struggling woman", "duration_estimate_seconds": 4.0, "characters_involved": ["ORION", "MIDDLE-AGED WOMAN"], "objects_involved": [], "location": "INT. RADIOSHACK"}, {"id": "act_10", "description": "Orion makes eye contact with the woman and softens his posture", "duration_estimate_seconds": 5.0, "characters_involved": ["ORION", "MIDDLE-AGED WOMAN"], "objects_involved": [], "location": "INT. RADIOSHACK"}, {"id": "act_11", "description": "The woman's shoulders drop as tension releases", "duration_estimate_seconds": 3.0, "characters_involved": ["MIDDLE-AGED WOMAN"], "objects_involved": [], "location": "INT. RADIOSHACK"}, {"id": "act_12", "description": "Orion drifts toward a shelf", "duration_estimate_seconds": 4.0, "characters_involved": ["ORION"], "objects_involved": ["shelf"], "location": "INT. RADIOSHACK"}, {"id": "act_13", "description": "Orion trails his hand along the side of a TANDY COCO 2", "duration_estimate_seconds": 5.0, "characters_involved": ["ORION"], "objects_involved": ["TANDY COCO 2"], "location": "INT. RADIOSHACK"}, {"id": "act_14", "description": "Orion looks at his colleague", "duration_estimate_seconds": 2.0, "characters_involved": ["ORION", "COLLEAGUE"], "objects_involved": [], "location": "INT. RADIOSHACK"}, {"id": "act_15", "description": "A user turns the mouse upside down", "duration_estimate_seconds": 3.0, "characters_involved": ["USER"], "objects_involved": ["mouse"], "location": "INT. RADIOSHACK"}, {"id": "act_16", "description": "The user tries to use the mouse as a trackball", "duration_estimate_seconds": 4.0, "characters_involved": ["USER"], "objects_involved": ["mouse"], "location": "INT. RADIOSHACK"}, {"id": "act_17", "description": "Orion steps toward the struggling user", "duration_estimate_seconds": 3.0, "characters_involved": ["ORION", "USER"], "objects_involved": [], "location": "INT. RADIOSHACK"}, {"id": "act_18", "description": "Orion guides the user's hands on the keyboard", "duration_estimate_seconds": 6.0, "characters_involved": ["ORION", "USER"], "objects_involved": ["keyboard"], "location": "INT. RADIOSHACK"}, {"id": "act_19", "description": "Orion and his colleague load the Compaq into the back of an AMC Eagle", "duration_estimate_seconds": 8.0, "characters_involved": ["ORION", "COLLEAGUE"], "objects_involved": ["Compaq computer", "AMC Eagle"], "location": "EXT. MALL PARKING LOT"}, {"id": "act_20", "description": "The heavy computer thuds against the trunk floor", "duration_estimate_seconds": 2.0, "characters_involved": ["ORION", "COLLEAGUE"], "objects_involved": ["Compaq computer", "AMC Eagle trunk"], "location": "EXT. MALL PARKING LOT"}, {"id": "act_21", "description": "The car pulls out of the parking lot", "duration_estimate_seconds": 5.0, "characters_involved": ["ORION", "COLLEAGUE"], "objects_involved": ["AMC Eagle"], "location": "INT. AMC EAGLE"}, {"id": "act_22", "description": "Orion turns to face his colleague", "duration_estimate_seconds": 3.0, "characters_involved": ["ORION", "COLLEAGUE"], "objects_involved": [], "location": "INT. AMC EAGLE"}, {"id": "act_23", "description": "The Eagle disappears into traffic", "duration_estimate_seconds": 5.0, "characters_involved": ["ORION", "COLLEAGUE"], "objects_involved": ["AMC Eagle"], "location": "EXT. STREET"}]
+--------------------------------------------------------------------------------
+2026-04-17T06:44:30.849394 | shot_grouping | input_hash=5f1aad9a38123f9c | output_hash=a80a827144ca3a3e
+Output:
+[{"shot_id": "shot_01", "action_item_ids": ["act_01", "act_02"], "total_duration_seconds": 10.0, "shot_type": "wide"}, {"shot_id": "shot_02", "action_item_ids": ["act_03"], "total_duration_seconds": 5.0, "shot_type": "medium"}, {"shot_id": "shot_03", "action_item_ids": ["act_04", "act_05"], "total_duration_seconds": 9.0, "shot_type": "medium"}, {"shot_id": "shot_04", "action_item_ids": ["act_06"], "total_duration_seconds": 4.0, "shot_type": "medium"}, {"shot_id": "shot_05", "action_item_ids": ["act_07"], "total_duration_seconds": 2.0, "shot_type": "close"}, {"shot_id": "shot_06", "action_item_ids": ["act_08"], "total_duration_seconds": 3.0, "shot_type": "close"}, {"shot_id": "shot_07", "action_item_ids": ["act_09", "act_10"], "total_duration_seconds": 9.0, "shot_type": "medium"}, {"shot_id": "shot_08", "action_item_ids": ["act_11"], "total_duration_seconds": 3.0, "shot_type": "close"}, {"shot_id": "shot_09", "action_item_ids": ["act_12", "act_13"], "total_duration_seconds": 9.0, "shot_type": "medium"}, {"shot_id": "shot_10", "action_item_ids": ["act_14"], "total_duration_seconds": 2.0, "shot_type": "close"}, {"shot_id": "shot_11", "action_item_ids": ["act_15", "act_16"], "total_duration_seconds": 7.0, "shot_type": "close"}, {"shot_id": "shot_12", "action_item_ids": ["act_17", "act_18"], "total_duration_seconds": 9.0, "shot_type": "medium"}, {"shot_id": "shot_13", "action_item_ids": ["act_19", "act_20"], "total_duration_seconds": 10.0, "shot_type": "wide"}, {"shot_id": "shot_14", "action_item_ids": ["act_21", "act_22"], "total_duration_seconds": 8.0, "shot_type": "medium"}, {"shot_id": "shot_15", "action_item_ids": ["act_23"], "total_duration_seconds": 5.0, "shot_type": "wide"}]
+--------------------------------------------------------------------------------

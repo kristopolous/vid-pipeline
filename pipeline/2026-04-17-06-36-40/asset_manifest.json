@@ -1,0 +1,109 @@
+[
+  {
+    "asset_id": "char_orion",
+    "type": "character",
+    "name": "Orion",
+    "visual_description": "a 30 year old man with a long beard. He is contemplative and a professional",
+    "first_appears_in": ""
+  },
+  {
+    "asset_id": "char_the_protagonist",
+    "type": "character",
+    "name": "The protagonist",
+    "visual_description": "a clean-cut 40 year old nerdy man with glasses",
+    "first_appears_in": ""
+  },
+  {
+    "asset_id": "obj_compaq_portable",
+    "type": "object",
+    "name": "Compaq portable",
+    "visual_description": "1983 portable computer, beige luggage-style case with built-in 9-inch amber monitor, full-sized keyboard that attaches to front as lid, weighing 30 pounds with carrying handle",
+    "scene_description": "",
+    "first_appears_in": ""
+  },
+  {
+    "asset_id": "obj_amc_eagle",
+    "type": "object",
+    "name": "AMC Eagle",
+    "visual_description": "early 1980s four-wheel-drive station wagon, boxy sedan-like body with raised suspension, likely rust or tan colored",
+    "scene_description": "",
+    "first_appears_in": ""
+  },
+  {
+    "asset_id": "obj_radioshack_store",
+    "type": "object",
+    "name": "RadioShack store",
+    "visual_description": "1980s electronics retail store interior, wood-tone display fixtures, walls lined with electronic components in blister packs",
+    "scene_description": "",
+    "first_appears_in": ""
+  },
+  {
+    "asset_id": "obj_potemkin_software_demo",
+    "type": "object",
+    "name": "Potemkin software demo",
+    "visual_description": "early business software running on CRT monitor, likely displaying spreadsheet or data entry interface",
+    "scene_description": "",
+    "first_appears_in": ""
+  },
+  {
+    "asset_id": "obj_tandy_coco_2",
+    "type": "object",
+    "name": "Tandy CoCo 2",
+    "visual_description": "TRS-80 Color Computer 2, silver and black all-in-one home computer with integrated keyboard, 1980s 8-bit microcomputer",
+    "scene_description": "",
+    "first_appears_in": ""
+  },
+  {
+    "asset_id": "obj_demonstration_table",
+    "type": "object",
+    "name": "demonstration table",
+    "visual_description": "folding table set up in mall corridor with computer equipment for public trials",
+    "scene_description": "",
+    "first_appears_in": ""
+  },
+  {
+    "asset_id": "obj_mechanical_mouse",
+    "type": "object",
+    "name": "mechanical mouse",
+    "visual_description": "early 1980s computer mouse, beige plastic with ball mechanism and attached cord",
+    "scene_description": "",
+    "first_appears_in": ""
+  },
+  {
+    "asset_id": "obj_mall_tile_floor",
+    "type": "object",
+    "name": "mall tile floor",
+    "visual_description": "typical 1980s indoor shopping center flooring, square terrazzo or ceramic tiles in neutral tones",
+    "scene_description": "",
+    "first_appears_in": ""
+  },
+  {
+    "asset_id": "bg_the_office",
+    "type": "background",
+    "name": "The office",
+    "visual_description": "an implied indoor workspace where the team typically tests software and where they return at the end of the day.",
+    "first_appears_in": ""
+  },
+  {
+    "asset_id": "bg_sunnyvale_town_center_mall",
+    "type": "background",
+    "name": "Sunnyvale Town Center Mall",
+    "visual_description": "a bustling indoor shopping center filled with a diverse crowd of varying ages and backgrounds, featuring tile floors where children run.",
+    "first_appears_in": "",
+    "full_prompt": "a 1980s mall"
+  },
+  {
+    "asset_id": "bg_radioshack",
+    "type": "background",
+    "name": "RadioShack",
+    "visual_description": "an electronics store within the mall, described as having a table set up for software demos and displays of personal electronics like the Tandy CoCo 2.",
+    "first_appears_in": ""
+  },
+  {
+    "asset_id": "bg_the_amc_eagle",
+    "type": "background",
+    "name": "The AMC Eagle",
+    "visual_description": "a vehicle used for transportation, specifically mentioned as having the Compaq portable computer loaded into its back.",
+    "first_appears_in": ""
+  }
+]

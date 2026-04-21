@@ -1,0 +1,219 @@
+[
+  {
+    "shot_id": 1,
+    "action_item_ids": [
+      "act_01"
+    ],
+    "total_duration_seconds": 3.0,
+    "shot_type": "medium"
+  },
+  {
+    "shot_id": 2,
+    "action_item_ids": [
+      "act_02"
+    ],
+    "total_duration_seconds": 3.0,
+    "shot_type": "medium"
+  },
+  {
+    "shot_id": 3,
+    "action_item_ids": [
+      "act_03"
+    ],
+    "total_duration_seconds": 4.0,
+    "shot_type": "wide"
+  },
+  {
+    "shot_id": 4,
+    "action_item_ids": [
+      "act_04"
+    ],
+    "total_duration_seconds": 5.0,
+    "shot_type": "medium"
+  },
+  {
+    "shot_id": 5,
+    "action_item_ids": [
+      "act_05"
+    ],
+    "total_duration_seconds": 6.0,
+    "shot_type": "wide"
+  },
+  {
+    "shot_id": 6,
+    "action_item_ids": [
+      "act_06"
+    ],
+    "total_duration_seconds": 3.0,
+    "shot_type": "medium"
+  },
+  {
+    "shot_id": 7,
+    "action_item_ids": [
+      "act_07"
+    ],
+    "total_duration_seconds": 6.0,
+    "shot_type": "medium"
+  },
+  {
+    "shot_id": 8,
+    "action_item_ids": [
+      "act_08"
+    ],
+    "total_duration_seconds": 2.0,
+    "shot_type": "close"
+  },
+  {
+    "shot_id": 9,
+    "action_item_ids": [
+      "act_09"
+    ],
+    "total_duration_seconds": 4.0,
+    "shot_type": "medium"
+  },
+  {
+    "shot_id": 10,
+    "action_item_ids": [
+      "act_10"
+    ],
+    "total_duration_seconds": 3.0,
+    "shot_type": "close"
+  },
+  {
+    "shot_id": 11,
+    "action_item_ids": [
+      "act_11"
+    ],
+    "total_duration_seconds": 4.0,
+    "shot_type": "close"
+  },
+  {
+    "shot_id": 12,
+    "action_item_ids": [
+      "act_12"
+    ],
+    "total_duration_seconds": 3.0,
+    "shot_type": "close"
+  },
+  {
+    "shot_id": 13,
+    "action_item_ids": [
+      "act_13"
+    ],
+    "total_duration_seconds": 3.0,
+    "shot_type": "close"
+  },
+  {
+    "shot_id": 14,
+    "action_item_ids": [
+      "act_14"
+    ],
+    "total_duration_seconds": 4.0,
+    "shot_type": "medium"
+  },
+  {
+    "shot_id": 15,
+    "action_item_ids": [
+      "act_15"
+    ],
+    "total_duration_seconds": 2.0,
+    "shot_type": "close"
+  },
+  {
+    "shot_id": 16,
+    "action_item_ids": [
+      "act_16"
+    ],
+    "total_duration_seconds": 4.0,
+    "shot_type": "wide"
+  },
+  {
+    "shot_id": 17,
+    "action_item_ids": [
+      "act_17"
+    ],
+    "total_duration_seconds": 5.0,
+    "shot_type": "medium"
+  },
+  {
+    "shot_id": 18,
+    "action_item_ids": [
+      "act_18"
+    ],
+    "total_duration_seconds": 4.0,
+    "shot_type": "close"
+  },
+  {
+    "shot_id": 19,
+    "action_item_ids": [
+      "act_19"
+    ],
+    "total_duration_seconds": 3.0,
+    "shot_type": "close"
+  },
+  {
+    "shot_id": 20,
+    "action_item_ids": [
+      "act_20"
+    ],
+    "total_duration_seconds": 4.0,
+    "shot_type": "close"
+  },
+  {
+    "shot_id": 21,
+    "action_item_ids": [
+      "act_21"
+    ],
+    "total_duration_seconds": 4.0,
+    "shot_type": "extreme"
+  },
+  {
+    "shot_id": 22,
+    "action_item_ids": [
+      "act_22"
+    ],
+    "total_duration_seconds": 3.0,
+    "shot_type": "close"
+  },
+  {
+    "shot_id": 23,
+    "action_item_ids": [
+      "act_23"
+    ],
+    "total_duration_seconds": 4.0,
+    "shot_type": "medium"
+  },
+  {
+    "shot_id": 24,
+    "action_item_ids": [
+      "act_24"
+    ],
+    "total_duration_seconds": 5.0,
+    "shot_type": "close"
+  },
+  {
+    "shot_id": 25,
+    "action_item_ids": [
+      "act_25"
+    ],
+    "total_duration_seconds": 2.0,
+    "shot_type": "close"
+  },
+  {
+    "shot_id": 26,
+    "action_item_ids": [
+      "act_26"
+    ],
+    "total_duration_seconds": 6.0,
+    "shot_type": "medium"
+  },
+  {
+    "shot_id": 27,
+    "action_item_ids": [
+      "act_27",
+      "act_28"
+    ],
+    "total_duration_seconds": 9.0,
+    "shot_type": "medium"
+  }
+]

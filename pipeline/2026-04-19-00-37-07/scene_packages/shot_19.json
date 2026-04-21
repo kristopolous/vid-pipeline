@@ -1,0 +1,57 @@
+{
+  "shot_id": "shot_19",
+  "duration_seconds": 5.0,
+  "harness": {
+    "film_stock": "35mm film grain",
+    "color_palette": [
+      "cinematic"
+    ],
+    "lighting_style": "cinematic",
+    "aspect_ratio": "16:9",
+    "era": "modern",
+    "mood": "neutral",
+    "negative_prompt": "anime, cartoon, low quality, distorted",
+    "style_description": "",
+    "context_description": "This is taking place in 1982 Menlo Park among the boom in computers at a\nRadioShack in a mall. The Radioshack has cheap consumer products and the mall\nis 1970s style. The people walking around it are normal middle class people."
+  },
+  "assets": [
+    {
+      "asset_id": "char_orion",
+      "role": "primary_character",
+      "file": ""
+    },
+    {
+      "asset_id": "obj_amc_eagle",
+      "role": "object",
+      "file": ""
+    },
+    {
+      "asset_id": "bg_1_radioshack_store",
+      "role": "background",
+      "file": ""
+    },
+    {
+      "asset_id": "bg_2_sunnyvale_town_center_mall",
+      "role": "background",
+      "file": ""
+    },
+    {
+      "asset_id": "bg_3_back_of_the_amc_eagle",
+      "role": "background",
+      "file": ""
+    }
+  ],
+  "timing_breakdown": [
+    {
+      "start": "0:00",
+      "end": "0:05",
+      "action": "The AMC Eagle pulls onto the road"
+    }
+  ],
+  "full_prompt": "Context: This is taking place in 1982 Menlo Park among the boom in computers at a\nRadioShack in a mall. The Radioshack has cheap consumer products and the mall\nis 1970s style. The people walking around it are normal middle class people.. Film stock: 35mm film grain. Color palette: cinematic. Lighting: cinematic. Era: modern. Mood: neutral. wide shot. 0:00-0:05: The AMC Eagle pulls onto the road.",
+  "shot_type": "wide",
+  "retry_count": 0,
+  "status": "pending",
+  "composite_prompt": "Background: 3. **Back of the AMC Eagle**: the cargo area of a vehicle used to transport the heavy Compaq computer, mentioned as the place where the equipment is tossed or dragged., Orion - a 30 year old man with a long beard. He is contemplative and a professional, AMC Eagle - early 1980s four-wheel-drive station wagon, elevated ride height, available in rust/brown tones",
+  "keyframe_image": "renders/shot_shot_19_keyframe.png"
+}

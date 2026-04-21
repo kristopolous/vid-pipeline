@@ -1,0 +1,72 @@
+{
+  "shot_id": 1,
+  "duration_seconds": 19.0,
+  "harness": {
+    "film_stock": "35mm film grain",
+    "color_palette": [
+      "cinematic"
+    ],
+    "lighting_style": "cinematic",
+    "aspect_ratio": "16:9",
+    "era": "modern",
+    "mood": "neutral",
+    "negative_prompt": "anime, cartoon, low quality, distorted",
+    "style_description": "",
+    "context_description": "This is taking place in 1982 Menlo Park among the boom in computers at a\nRadioShack in a mall. The Radioshack has cheap consumer products and the mall\nis 1970s style. The people walking around it are normal middle class people."
+  },
+  "assets": [
+    {
+      "asset_id": "obj_cane",
+      "role": "object",
+      "file": ""
+    },
+    {
+      "asset_id": "bg_the_back_of_an_amc_eagle",
+      "role": "background",
+      "file": ""
+    },
+    {
+      "asset_id": "bg_the_office",
+      "role": "background",
+      "file": ""
+    },
+    {
+      "asset_id": "bg_the_radioshack",
+      "role": "background",
+      "file": ""
+    },
+    {
+      "asset_id": "bg_the_sunnyvale_town_center_mall",
+      "role": "background",
+      "file": ""
+    }
+  ],
+  "timing_breakdown": [
+    {
+      "start": "0:00",
+      "end": "0:06",
+      "action": "Middle-class families stroll past the mall interior"
+    },
+    {
+      "start": "0:06",
+      "end": "0:10",
+      "action": "Children run ahead past stores"
+    },
+    {
+      "start": "0:10",
+      "end": "0:15",
+      "action": "An elderly man leans on a cane"
+    },
+    {
+      "start": "0:15",
+      "end": "0:19",
+      "action": "A woman in designer shoes clicks past"
+    }
+  ],
+  "full_prompt": "Context: This is taking place in 1982 Menlo Park among the boom in computers at a\nRadioShack in a mall. The Radioshack has cheap consumer products and the mall\nis 1970s style. The people walking around it are normal middle class people.. Film stock: 35mm film grain. Color palette: cinematic. Lighting: cinematic. Era: modern. Mood: neutral. wide shot. 0:00-0:06: Middle-class families stroll past the mall interior. 0:06-0:10: Children run ahead past stores. 0:10-0:15: An elderly man leans on a cane. 0:15-0:19: A woman in designer shoes clicks past.",
+  "shot_type": "wide",
+  "retry_count": 0,
+  "status": "pending",
+  "composite_prompt": "Background: The Sunnyvale Town Center Mall: a busy indoor shopping center with tile floors, populated by a diverse public demographic during the daytime., cane - walking aid for elderly or mobility-impaired shoppers",
+  "keyframe_image": "renders/shot_1_keyframe.png"
+}

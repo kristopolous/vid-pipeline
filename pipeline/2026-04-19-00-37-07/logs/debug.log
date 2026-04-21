@@ -1,0 +1,138 @@
+2026-04-19T00:39:52.559219 | script_normalization | input_hash=c3e4e8bcdecb41fd | output_hash=6d314bd0c02e2c13
+Output:
+FADE IN:
+
+EXT. MALL PARKING LOT - DAY
+
+A beige 1982 AMC Eagle sits in the sun. The rear hatch stands open.
+
+Two men heave a 30-pound Compaq portable computer toward the car. They lug it rather than carry it. They drop it into the back of the Eagle.
+
+INT. SUNNYVALE TOWN CENTER MALL - DAY
+
+1970s architecture. Brown and orange tile floors. Foliage in concrete planters.
+
+Middle-class shoppers pass by. An elderly man with a cane. A mother pushing a stroller. A woman in designer heels.
+
+INT. RADIOSHACK - CONTINUOUS
+
+Consumer electronics line the shelves. CB radios. Remote control cars. A Tandy CoCo 2 sits on a shelf with a $160 price tag.
+
+A folding table holds the Compaq computer running demo software. A sign reads "FREE DEMO."
+
+Orion (30s, thoughtful presence) stands beside the table. The Narrator watches from nearby.
+
+A MIDDLE-AGED WOMAN approaches the keyboard. She presses keys. Nothing happens. She presses harder. She drags her fingers across all the keys at once.
+
+The screen remains static.
+
+Her face tightens. Her shoulders tense.
+
+ORION
+(quietly)
+When I see a user get frustrated with the software, I think this is the hardest time to listen. And also, the time we must listen the hardest.
+
+The woman jabs at the keys.
+
+ORION (CONT'D)
+Look. The user isn't misbehaving. Her attitude is mirroring the machine.
+
+He approaches her. His posture softens. He makes eye contact.
+
+ORION (CONT'D)
+Our software is the one that is failing you.
+
+The woman's shoulders drop. Her face relaxes.
+
+A CHILD turns the mouse upside down and tries to roll it like a trackball.
+
+Orion surveys the store. He drags his hand along the side of a Tandy CoCo 2.
+
+ORION
+I hear the words "personal computer" and I think about machines that respect each of us as unrepeatable creations.
+
+He looks at the Narrator.
+
+ORION (CONT'D)
+With these machines, do we commodify the human or accommodate the person?
+
+He watches the child with the upside-down mouse.
+
+ORION (CONT'D)
+Whether we do or not... this all depends on the choices we make, every day. I need to make the right ones.
+
+CLOSE ON: Orion's hand on the computer. The woman's hand on the keyboard. The child's hand on the mouse.
+
+The frame softens. Colors blur and connect like edges on a graph. Compassion made visible. Vectors of warmth between human and machine.
+
+The moment crystallizes—
+
+Then dissolves.
+
+EXT. MALL PARKING LOT - LATE AFTERNOON
+
+The Compaq goes back into the Eagle. 4:00 PM light stretches across the asphalt.
+
+INT. AMC EAGLE - MOVING - DAY
+
+The car pulls onto the road. The Narrator drives. Orion rides passenger.
+
+NARRATOR
+So what did you think?
+
+ORION
+It's broken.
+
+NARRATOR
+What part?
+
+ORION
+The premise.
+
+The car passes storefronts.
+
+ORION (CONT'D)
+It's not any particular piece. It's the promise we're communicating to the user. We say one thing, the interface says another, and it behaves in yet another.
+
+He watches the road.
+
+ORION (CONT'D)
+It's within these mixed messages that the opportunity is lost. Everything must be spoken with a single voice.
+
+NARRATOR
+And what does that voice say?
+
+ORION
+I dunno.
+
+A beat.
+
+ORION (CONT'D)
+Hey, look, I care about you. Your stress, anxiety, and suffering—it means something to me. I'm here for you. To support you.
+
+NARRATOR
+You mean like a therapist?
+
+ORION
+No, not exactly.
+
+He gestures with his hands.
+
+ORION (CONT'D)
+Generous undo. Multiple ways to achieve something. Search and suggest instead of pecking through hierarchies.
+
+The car continues down the road.
+
+ORION (CONT'D)
+People use software to get things done. We need to help them get there. Not present intellectual exercises.
+
+FADE OUT.
+--------------------------------------------------------------------------------
+2026-04-19T00:43:49.280740 | action_itemization | input_hash=6d314bd0c02e2c13 | output_hash=c1598157627adb93
+Output:
+[{"id": "act_01", "description": "Two men heave a 30-pound Compaq portable computer toward the beige AMC Eagle", "duration_estimate_seconds": 6.0, "characters_involved": ["TWO MEN"], "objects_involved": ["Compaq portable computer", "AMC Eagle"], "location": "EXT. MALL PARKING LOT"}, {"id": "act_02", "description": "The two men drop the Compaq computer into the back of the Eagle", "duration_estimate_seconds": 3.0, "characters_involved": ["TWO MEN"], "objects_involved": ["Compaq portable computer", "AMC Eagle"], "location": "EXT. MALL PARKING LOT"}, {"id": "act_03", "description": "An elderly man with a cane walks through the mall", "duration_estimate_seconds": 5.0, "characters_involved": ["ELDERLY MAN"], "objects_involved": ["cane"], "location": "INT. SUNNYVALE TOWN CENTER MALL"}, {"id": "act_04", "description": "A mother pushes a stroller past the planters", "duration_estimate_seconds": 4.0, "characters_involved": ["MOTHER"], "objects_involved": ["stroller"], "location": "INT. SUNNYVALE TOWN CENTER MALL"}, {"id": "act_05", "description": "A woman in designer heels walks through the mall", "duration_estimate_seconds": 4.0, "characters_involved": ["WOMAN IN HEELS"], "objects_involved": ["designer heels"], "location": "INT. SUNNYVALE TOWN CENTER MALL"}, {"id": "act_06", "description": "A middle-aged woman approaches the demo table keyboard", "duration_estimate_seconds": 4.0, "characters_involved": ["MIDDLE-AGED WOMAN"], "objects_involved": ["keyboard", "demo table"], "location": "INT. RADIOSHACK"}, {"id": "act_07", "description": "The middle-aged woman presses the keys with no response", "duration_estimate_seconds": 3.0, "characters_involved": ["MIDDLE-AGED WOMAN"], "objects_involved": ["keyboard"], "location": "INT. RADIOSHACK"}, {"id": "act_08", "description": "The woman presses the keyboard keys harder", "duration_estimate_seconds": 2.0, "characters_involved": ["MIDDLE-AGED WOMAN"], "objects_involved": ["keyboard"], "location": "INT. RADIOSHACK"}, {"id": "act_09", "description": "The woman drags her fingers across all the keys at once", "duration_estimate_seconds": 2.0, "characters_involved": ["MIDDLE-AGED WOMAN"], "objects_involved": ["keyboard"], "location": "INT. RADIOSHACK"}, {"id": "act_10", "description": "The woman's face tightens and shoulders tense in frustration", "duration_estimate_seconds": 3.0, "characters_involved": ["MIDDLE-AGED WOMAN"], "objects_involved": [], "location": "INT. RADIOSHACK"}, {"id": "act_11", "description": "Orion stands beside the demo table watching the woman", "duration_estimate_seconds": 4.0, "characters_involved": ["ORION"], "objects_involved": ["demo table"], "location": "INT. RADIOSHACK"}, {"id": "act_12", "description": "The woman jabs at the keyboard keys", "duration_estimate_seconds": 2.0, "characters_involved": ["MIDDLE-AGED WOMAN"], "objects_involved": ["keyboard"], "location": "INT. RADIOSHACK"}, {"id": "act_13", "description": "Orion approaches the frustrated woman", "duration_estimate_seconds": 4.0, "characters_involved": ["ORION", "MIDDLE-AGED WOMAN"], "objects_involved": [], "location": "INT. RADIOSHACK"}, {"id": "act_14", "description": "Orion softens his posture and makes eye contact with the woman", "duration_estimate_seconds": 3.0, "characters_involved": ["ORION", "MIDDLE-AGED WOMAN"], "objects_involved": [], "location": "INT. RADIOSHACK"}, {"id": "act_15", "description": "The woman's shoulders drop and her face relaxes", "duration_estimate_seconds": 3.0, "characters_involved": ["MIDDLE-AGED WOMAN"], "objects_involved": [], "location": "INT. RADIOSHACK"}, {"id": "act_16", "description": "A child turns the mouse upside down", "duration_estimate_seconds": 2.0, "characters_involved": ["CHILD"], "objects_involved": ["mouse"], "location": "INT. RADIOSHACK"}, {"id": "act_17", "description": "The child tries to roll the upside-down mouse like a trackball", "duration_estimate_seconds": 4.0, "characters_involved": ["CHILD"], "objects_involved": ["mouse"], "location": "INT. RADIOSHACK"}, {"id": "act_18", "description": "Orion surveys the store interior", "duration_estimate_seconds": 4.0, "characters_involved": ["ORION"], "objects_involved": [], "location": "INT. RADIOSHACK"}, {"id": "act_19", "description": "Orion drags his hand along the side of a Tandy CoCo 2", "duration_estimate_seconds": 3.0, "characters_involved": ["ORION"], "objects_involved": ["Tandy CoCo 2"], "location": "INT. RADIOSHACK"}, {"id": "act_20", "description": "Orion looks at the Narrator", "duration_estimate_seconds": 2.0, "characters_involved": ["ORION", "NARRATOR"], "objects_involved": [], "location": "INT. RADIOSHACK"}, {"id": "act_21", "description": "Orion watches the child with the upside-down mouse", "duration_estimate_seconds": 4.0, "characters_involved": ["ORION", "CHILD"], "objects_involved": ["mouse"], "location": "INT. RADIOSHACK"}, {"id": "act_22", "description": "Close up on Orion's hand on the computer", "duration_estimate_seconds": 2.0, "characters_involved": ["ORION"], "objects_involved": ["computer"], "location": "INT. RADIOSHACK"}, {"id": "act_23", "description": "Close up on the woman's hand on the keyboard", "duration_estimate_seconds": 2.0, "characters_involved": ["MIDDLE-AGED WOMAN"], "objects_involved": ["keyboard"], "location": "INT. RADIOSHACK"}, {"id": "act_24", "description": "Close up on the child's hand on the mouse", "duration_estimate_seconds": 2.0, "characters_involved": ["CHILD"], "objects_involved": ["mouse"], "location": "INT. RADIOSHACK"}, {"id": "act_25", "description": "The visual frame softens and colors blur together", "duration_estimate_seconds": 5.0, "characters_involved": [], "objects_involved": [], "location": "INT. RADIOSHACK"}, {"id": "act_26", "description": "Two men load the Compaq back into the Eagle", "duration_estimate_seconds": 5.0, "characters_involved": ["TWO MEN"], "objects_involved": ["Compaq portable computer", "AMC Eagle"], "location": "EXT. MALL PARKING LOT"}, {"id": "act_27", "description": "The AMC Eagle pulls onto the road", "duration_estimate_seconds": 5.0, "characters_involved": ["NARRATOR", "ORION"], "objects_involved": ["AMC Eagle"], "location": "INT. AMC EAGLE - MOVING"}, {"id": "act_28", "description": "The Narrator drives while Orion rides passenger", "duration_estimate_seconds": 4.0, "characters_involved": ["NARRATOR", "ORION"], "objects_involved": ["steering wheel"], "location": "INT. AMC EAGLE - MOVING"}, {"id": "act_29", "description": "The car passes storefronts on the road", "duration_estimate_seconds": 4.0, "characters_involved": ["NARRATOR", "ORION"], "objects_involved": ["AMC Eagle", "storefronts"], "location": "INT. AMC EAGLE - MOVING"}, {"id": "act_30", "description": "Orion watches the road through the windshield", "duration_estimate_seconds": 3.0, "characters_involved": ["ORION"], "objects_involved": ["windshield", "road"], "location": "INT. AMC EAGLE - MOVING"}, {"id": "act_31", "description": "Orion gestures with his hands while talking", "duration_estimate_seconds": 4.0, "characters_involved": ["ORION"], "objects_involved": [], "location": "INT. AMC EAGLE - MOVING"}, {"id": "act_32", "description": "The car continues down the road", "duration_estimate_seconds": 5.0, "characters_involved": ["NARRATOR", "ORION"], "objects_involved": ["AMC Eagle", "road"], "location": "INT. AMC EAGLE - MOVING"}]
+--------------------------------------------------------------------------------
+2026-04-19T00:45:02.890361 | shot_grouping | input_hash=c1598157627adb93 | output_hash=9ae398e2317419e0
+Output:
+[{"shot_id": "shot_01", "action_item_ids": ["act_01", "act_02"], "total_duration_seconds": 9.0, "shot_type": "wide"}, {"shot_id": "shot_02", "action_item_ids": ["act_03"], "total_duration_seconds": 5.0, "shot_type": "medium"}, {"shot_id": "shot_03", "action_item_ids": ["act_04"], "total_duration_seconds": 4.0, "shot_type": "medium"}, {"shot_id": "shot_04", "action_item_ids": ["act_05"], "total_duration_seconds": 4.0, "shot_type": "medium"}, {"shot_id": "shot_05", "action_item_ids": ["act_06", "act_07", "act_08", "act_09", "act_10"], "total_duration_seconds": 14.0, "shot_type": "medium"}, {"shot_id": "shot_06", "action_item_ids": ["act_11"], "total_duration_seconds": 4.0, "shot_type": "medium"}, {"shot_id": "shot_07", "action_item_ids": ["act_12"], "total_duration_seconds": 2.0, "shot_type": "close"}, {"shot_id": "shot_08", "action_item_ids": ["act_13", "act_14", "act_15"], "total_duration_seconds": 10.0, "shot_type": "medium"}, {"shot_id": "shot_09", "action_item_ids": ["act_16", "act_17"], "total_duration_seconds": 6.0, "shot_type": "medium"}, {"shot_id": "shot_10", "action_item_ids": ["act_18"], "total_duration_seconds": 4.0, "shot_type": "wide"}, {"shot_id": "shot_11", "action_item_ids": ["act_19"], "total_duration_seconds": 3.0, "shot_type": "medium"}, {"shot_id": "shot_12", "action_item_ids": ["act_20"], "total_duration_seconds": 2.0, "shot_type": "medium"}, {"shot_id": "shot_13", "action_item_ids": ["act_21"], "total_duration_seconds": 4.0, "shot_type": "medium"}, {"shot_id": "shot_14", "action_item_ids": ["act_22"], "total_duration_seconds": 2.0, "shot_type": "extreme"}, {"shot_id": "shot_15", "action_item_ids": ["act_23"], "total_duration_seconds": 2.0, "shot_type": "extreme"}, {"shot_id": "shot_16", "action_item_ids": ["act_24"], "total_duration_seconds": 2.0, "shot_type": "extreme"}, {"shot_id": "shot_17", "action_item_ids": ["act_25"], "total_duration_seconds": 5.0, "shot_type": "wide"}, {"shot_id": "shot_18", "action_item_ids": ["act_26"], "total_duration_seconds": 5.0, "shot_type": "wide"}, {"shot_id": "shot_19", "action_item_ids": ["act_27"], "total_duration_seconds": 5.0, "shot_type": "wide"}, {"shot_id": "shot_20", "action_item_ids": ["act_28"], "total_duration_seconds": 4.0, "shot_type": "wide"}, {"shot_id": "shot_21", "action_item_ids": ["act_29"], "total_duration_seconds": 4.0, "shot_type": "wide"}, {"shot_id": "shot_22", "action_item_ids": ["act_30"], "total_duration_seconds": 3.0, "shot_type": "close"}, {"shot_id": "shot_23", "action_item_ids": ["act_31"], "total_duration_seconds": 4.0, "shot_type": "medium"}, {"shot_id": "shot_24", "action_item_ids": ["act_32"], "total_duration_seconds": 5.0, "shot_type": "wide"}]
+--------------------------------------------------------------------------------

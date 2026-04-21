@@ -623,6 +623,36 @@ If not ambiguous, output just the name as-is."""
         torch.cuda.synchronize()
         return image
 
+    def _generate_character_sheet(self, job_id: str, asset: dict, year_hint: str, assets_dir: Path) -> dict:
+        asset_id = asset["asset_id"]
+        name = asset.get("name", asset_id)
+        description = asset.get("visual_description", asset.get("description", ""))
+        full_prompt = asset.get("full_prompt", "").strip()
+
+        base_prompt = full_prompt or f"{year_hint}, realistic full color portrait photograph, {description}"
+        angles = {
+            "base": base_prompt,
+            "left_angle": f"{base_prompt}, facing left, left profile view, neutral gray background",
+            "right_angle": f"{base_prompt}, facing right, right profile view, neutral gray background",
+            "full_body": f"{base_prompt}, full body shot, standing, neutral background, from distance",
+        }
+
+        results = {}
+        for angle_name, prompt in angles.items():
+            self.logger.info(f"{job_id}: Generating {angle_name} for '{asset_id}': {prompt[:60]}...")
+            try:
+                image = self._generate_image(prompt)
+                if image:
+                    filename = f"{asset_id}_{angle_name}.png"
+                    gen_path = assets_dir / "characters" / "gen" / filename
+                    image.save(gen_path)
+                    results[angle_name] = str(filename)
+                    self.logger.info(f"{job_id}: Saved {angle_name}: {gen_path}")
+            except Exception as e:
+                self.logger.error(f"{job_id}: Failed to generate {angle_name} for {asset_id}: {e}")
+
+        return results
+
     def _montage_text_label(self, image: Image.Image, output_path: Path, label: str) -> None:
         import subprocess
 

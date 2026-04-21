@@ -1,0 +1,27 @@
+
+scenes
+
+1.
+  description of scene
+  possible assets to include
+  [ 1 ] [ 2 ] [ 3 ] [ 4 ] <- selectable interface.
+  [ generate ]
+
+  [ video generation ]
+
+2.
+  description of scene
+  possible assets to include
+  [ 1 ] [ 2 ] [ 3 ] [ 4 ]
+  [ generate ]
+
+  [ video generation ]
+
+...
+o
+Flow
+
+1. USER SELECTS PHOTOGRAPHS TO COMPOSITE
+2. USER REQUESTS COMPOSITE IMAGES 
+3. USER SELECTS COMPOSITE IMAGE TO ACT AS FIRST FRAME FOR LTX
+4. USER PRESSES GENERATE VIDEO

@@ -1,0 +1,72 @@
+{
+  "shot_id": "shot_05",
+  "duration_seconds": 14.0,
+  "harness": {
+    "film_stock": "35mm film grain",
+    "color_palette": [
+      "cinematic"
+    ],
+    "lighting_style": "cinematic",
+    "aspect_ratio": "16:9",
+    "era": "modern",
+    "mood": "neutral",
+    "negative_prompt": "anime, cartoon, low quality, distorted",
+    "style_description": "",
+    "context_description": "This is taking place in 1982 Menlo Park among the boom in computers at a\nRadioShack in a mall. The Radioshack has cheap consumer products and the mall\nis 1970s style. The people walking around it are normal middle class people."
+  },
+  "assets": [
+    {
+      "asset_id": "bg_1_radioshack_store",
+      "role": "background",
+      "file": ""
+    },
+    {
+      "asset_id": "bg_2_sunnyvale_town_center_mall",
+      "role": "background",
+      "file": ""
+    },
+    {
+      "asset_id": "bg_3_back_of_the_amc_eagle",
+      "role": "background",
+      "file": ""
+    },
+    {
+      "asset_id": "bg_4_the_office",
+      "role": "background",
+      "file": ""
+    }
+  ],
+  "timing_breakdown": [
+    {
+      "start": "0:00",
+      "end": "0:04",
+      "action": "A middle-aged woman approaches the demo table keyboard"
+    },
+    {
+      "start": "0:04",
+      "end": "0:07",
+      "action": "The middle-aged woman presses the keys with no response"
+    },
+    {
+      "start": "0:07",
+      "end": "0:09",
+      "action": "The woman presses the keyboard keys harder"
+    },
+    {
+      "start": "0:09",
+      "end": "0:11",
+      "action": "The woman drags her fingers across all the keys at once"
+    },
+    {
+      "start": "0:11",
+      "end": "0:14",
+      "action": "The woman's face tightens and shoulders tense in frustration"
+    }
+  ],
+  "full_prompt": "Context: This is taking place in 1982 Menlo Park among the boom in computers at a\nRadioShack in a mall. The Radioshack has cheap consumer products and the mall\nis 1970s style. The people walking around it are normal middle class people.. Film stock: 35mm film grain. Color palette: cinematic. Lighting: cinematic. Era: modern. Mood: neutral. medium shot. 0:00-0:04: A middle-aged woman approaches the demo table keyboard. 0:04-0:07: The middle-aged woman presses the keys with no response. 0:07-0:09: The woman presses the keyboard keys harder. 0:09-0:11: The woman drags her fingers across all the keys at once. 0:11-0:14: The woman's face tightens and shoulders tense in frustration.",
+  "shot_type": "medium",
+  "retry_count": 0,
+  "status": "pending",
+  "composite_prompt": "Background: 4. **The office**: the narrator's regular workplace mentioned as a comparison point, where the test subjects were less representative of the general public than the mall crowd.",
+  "keyframe_image": "renders/shot_shot_05_keyframe.png"
+}

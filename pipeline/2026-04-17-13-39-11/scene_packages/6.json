@@ -1,0 +1,57 @@
+{
+  "shot_id": 6,
+  "duration_seconds": 4.0,
+  "harness": {
+    "film_stock": "35mm film grain",
+    "color_palette": [
+      "cinematic"
+    ],
+    "lighting_style": "cinematic",
+    "aspect_ratio": "16:9",
+    "era": "modern",
+    "mood": "neutral",
+    "negative_prompt": "anime, cartoon, low quality, distorted",
+    "style_description": "",
+    "context_description": "This is taking place in 1982 Menlo Park among the boom in computers at a\nRadioShack in a mall. The Radioshack has cheap consumer products and the mall\nis 1970s style. The people walking around it are normal middle class people."
+  },
+  "assets": [
+    {
+      "asset_id": "char_orion",
+      "role": "primary_character",
+      "file": ""
+    },
+    {
+      "asset_id": "bg_the_back_of_an_amc_eagle",
+      "role": "background",
+      "file": ""
+    },
+    {
+      "asset_id": "bg_the_office",
+      "role": "background",
+      "file": ""
+    },
+    {
+      "asset_id": "bg_the_radioshack",
+      "role": "background",
+      "file": ""
+    },
+    {
+      "asset_id": "bg_the_sunnyvale_town_center_mall",
+      "role": "background",
+      "file": ""
+    }
+  ],
+  "timing_breakdown": [
+    {
+      "start": "0:00",
+      "end": "0:04",
+      "action": "Orion studies the woman"
+    }
+  ],
+  "full_prompt": "Context: This is taking place in 1982 Menlo Park among the boom in computers at a\nRadioShack in a mall. The Radioshack has cheap consumer products and the mall\nis 1970s style. The people walking around it are normal middle class people.. Film stock: 35mm film grain. Color palette: cinematic. Lighting: cinematic. Era: modern. Mood: neutral. medium shot. 0:00-0:04: Orion studies the woman.",
+  "shot_type": "medium",
+  "retry_count": 0,
+  "status": "pending",
+  "composite_prompt": "Background: The Sunnyvale Town Center Mall: a busy indoor shopping center with tile floors, populated by a diverse public demographic during the daytime., Orion - a 30 year old man with a long beard. He is contemplative and a professional",
+  "keyframe_image": "renders/shot_6_keyframe.png"
+}

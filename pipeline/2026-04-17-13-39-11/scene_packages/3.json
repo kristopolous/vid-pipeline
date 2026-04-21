@@ -1,0 +1,72 @@
+{
+  "shot_id": 3,
+  "duration_seconds": 15.0,
+  "harness": {
+    "film_stock": "35mm film grain",
+    "color_palette": [
+      "cinematic"
+    ],
+    "lighting_style": "cinematic",
+    "aspect_ratio": "16:9",
+    "era": "modern",
+    "mood": "neutral",
+    "negative_prompt": "anime, cartoon, low quality, distorted",
+    "style_description": "",
+    "context_description": "This is taking place in 1982 Menlo Park among the boom in computers at a\nRadioShack in a mall. The Radioshack has cheap consumer products and the mall\nis 1970s style. The people walking around it are normal middle class people."
+  },
+  "assets": [
+    {
+      "asset_id": "obj_compaq_portable",
+      "role": "object",
+      "file": ""
+    },
+    {
+      "asset_id": "bg_the_back_of_an_amc_eagle",
+      "role": "background",
+      "file": ""
+    },
+    {
+      "asset_id": "bg_the_office",
+      "role": "background",
+      "file": ""
+    },
+    {
+      "asset_id": "bg_the_radioshack",
+      "role": "background",
+      "file": ""
+    },
+    {
+      "asset_id": "bg_the_sunnyvale_town_center_mall",
+      "role": "background",
+      "file": ""
+    }
+  ],
+  "timing_breakdown": [
+    {
+      "start": "0:00",
+      "end": "0:05",
+      "action": "A middle-aged woman sits down for a demo"
+    },
+    {
+      "start": "0:05",
+      "end": "0:09",
+      "action": "The woman presses her fingers against the keys"
+    },
+    {
+      "start": "0:09",
+      "end": "0:13",
+      "action": "The woman drags her fingers across the keyboard pressing multiple keys"
+    },
+    {
+      "start": "0:13",
+      "end": "0:15",
+      "action": "The woman exhales sharply"
+    }
+  ],
+  "full_prompt": "Context: This is taking place in 1982 Menlo Park among the boom in computers at a\nRadioShack in a mall. The Radioshack has cheap consumer products and the mall\nis 1970s style. The people walking around it are normal middle class people.. Film stock: 35mm film grain. Color palette: cinematic. Lighting: cinematic. Era: modern. Mood: neutral. medium shot. 0:00-0:05: A middle-aged woman sits down for a demo. 0:05-0:09: The woman presses her fingers against the keys. 0:09-0:13: The woman drags her fingers across the keyboard pressing multiple keys. 0:13-0:15: The woman exhales sharply.",
+  "shot_type": "medium",
+  "retry_count": 0,
+  "status": "pending",
+  "composite_prompt": "Background: The Sunnyvale Town Center Mall: a busy indoor shopping center with tile floors, populated by a diverse public demographic during the daytime., Compaq Portable - 1983 portable computer, beige luggable design with built-in 9-inch amber or green monochrome monitor, full keyboard that attaches to front, approximately 30 pounds with carrying handle",
+  "keyframe_image": "renders/shot_3_keyframe.png"
+}

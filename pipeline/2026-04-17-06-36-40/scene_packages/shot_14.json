@@ -1,0 +1,62 @@
+{
+  "shot_id": "shot_14",
+  "duration_seconds": 8.0,
+  "harness": {
+    "film_stock": "35mm film grain",
+    "color_palette": [
+      "cinematic"
+    ],
+    "lighting_style": "cinematic",
+    "aspect_ratio": "16:9",
+    "era": "modern",
+    "mood": "neutral",
+    "negative_prompt": "anime, cartoon, low quality, distorted",
+    "style_description": "",
+    "context_description": "This is taking place in 1982 Menlo Park among the boom in computers at a\nRadioShack in a mall. The Radioshack has cheap consumer products and the mall\nis 1970s style. The people walking around it are normal middle class people."
+  },
+  "assets": [
+    {
+      "asset_id": "char_orion",
+      "role": "primary_character",
+      "file": ""
+    },
+    {
+      "asset_id": "obj_amc_eagle",
+      "role": "object",
+      "file": ""
+    },
+    {
+      "asset_id": "bg_the_office",
+      "role": "background",
+      "file": ""
+    },
+    {
+      "asset_id": "bg_sunnyvale_town_center_mall",
+      "role": "background",
+      "file": ""
+    },
+    {
+      "asset_id": "bg_radioshack",
+      "role": "background",
+      "file": ""
+    }
+  ],
+  "timing_breakdown": [
+    {
+      "start": "0:00",
+      "end": "0:05",
+      "action": "The car pulls out of the parking lot"
+    },
+    {
+      "start": "0:05",
+      "end": "0:08",
+      "action": "Orion turns to face his colleague"
+    }
+  ],
+  "full_prompt": "Context: This is taking place in 1982 Menlo Park among the boom in computers at a\nRadioShack in a mall. The Radioshack has cheap consumer products and the mall\nis 1970s style. The people walking around it are normal middle class people.. Film stock: 35mm film grain. Color palette: cinematic. Lighting: cinematic. Era: modern. Mood: neutral. medium shot. 0:00-0:05: The car pulls out of the parking lot. 0:05-0:08: Orion turns to face his colleague.",
+  "shot_type": "medium",
+  "retry_count": 0,
+  "status": "stale",
+  "composite_prompt": "RadioShack as background, Orion, AMC Eagle",
+  "keyframe_image": "renders/shot_shot_14_keyframe.png"
+}
