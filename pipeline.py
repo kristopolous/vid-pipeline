@@ -494,14 +494,9 @@ Focus on: indoor/outdoor settings, specific locations mentioned, environments wh
                         else:
                             self.logger.info(f"{job_id}: No web image found for {asset_id}, skipping")
                     elif asset_type == "character":
-                        prompt = full_prompt or f"{year_hint}, realistic full color portrait photograph, {description}"
-                        self.logger.info(f"{job_id}: Generating character '{asset_id}': {prompt[:80]}...")
-                        image = self._generate_image(prompt)
-                        if image:
-                            gen_path = assets_dir / subdir / "gen" / f"{asset_id}.png"
-                            image.save(gen_path)
-                            self._montage_text_label(image, gen_path, asset["name"])
-                            self.logger.info(f"{job_id}: Saved (gen) {gen_path}")
+                        self.logger.info(f"{job_id}: Generating character sheet for '{asset_id}'...")
+                        sheet_results = self._generate_character_sheet(job_id, asset, year_hint, assets_dir)
+                        asset["character_sheet"] = sheet_results
                     else:
                         prompt = full_prompt or f"{year_hint}, {description}"
                         self.logger.info(f"{job_id}: Generating {asset_type} '{asset_id}': {prompt[:80]}...")
@@ -515,6 +510,9 @@ Focus on: indoor/outdoor settings, specific locations mentioned, environments wh
                 except Exception as e:
                     self.logger.error(f"{job_id}: Failed to generate {asset_id}: {e}")
                     continue
+
+            with open(job_dir / "asset_manifest.json", "w") as f:
+                json.dump(assets, f, indent=2)
 
             self.logger.info(f"{job_id}: Track 2 complete (assets generated)")
             return True
