@@ -66,6 +66,15 @@
         .source-badge.web { background: #4a4a2d; color: #ca7; }
         .source-badge.uploaded { background: #2d2d5a; color: #77c; }
         .source-badge.url { background: #5a2d4a; color: #c7c; }
+        .version-badge { font-size: 9px; padding: 2px 4px; border-radius: 3px; background: #4a7dc4; color: #fff; margin-left: 6px; }
+        .version-selector { display: flex; align-items: center; gap: 6px; margin: 8px 0; }
+        .version-btn { padding: 4px 8px; cursor: pointer; background: #444; color: #fff; border: none; border-radius: 3px; }
+        .version-label { font-size: 12px; color: #aaa; min-width: 50px; text-align: center; }
+        .btn-small { padding: 4px 8px; font-size: 11px; }
+        .character-sheet-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 6px; margin: 8px 0; }
+        .character-sheet-grid .sheet-angle { text-align: center; }
+        .character-sheet-grid .sheet-angle img { width: 100%; height: 80px; object-fit: cover; border-radius: 4px; }
+        .character-sheet-grid .sheet-angle span { font-size: 9px; color: #888; }
 
         .error { background: #5a2d2d; padding: 12px; border-radius: 6px; color: #c77; }
         .empty { text-align: center; padding: 40px; color: #666; }
@@ -274,9 +283,38 @@
                 const cleanDesc = stripMarkdown(asset.visual_description);
                 const descEsc = (cleanDesc || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
                 const fullEsc = (asset.full_prompt || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+                const isCharacter = asset.type === "character";
+                const currentVersion = asset.current_version || 1;
+                const preferredVersion = asset.preferred_version || 1;
+                const characterSheet = asset.character_sheet || {};
+                const versions = [];
+                for (let v = 1; v <= currentVersion; v++) {
+                    versions.push(v);
+                }
+                const hasVersions = versions.length > 1;
+                const versionSelector = isCharacter && hasVersions ? `
+                    <div class="version-selector">
+                        <button class="version-btn" onclick="prevVersion('${idEsc}')">←</button>
+                        <span class="version-label">v<span id="version_num_${idEsc}">${preferredVersion}</span>/${currentVersion}</span>
+                        <button class="version-btn" onclick="nextVersion('${idEsc}')">→</button>
+                        <button class="btn btn-small" onclick="selectPreferred('${idEsc}')">★</button>
+                    </div>
+                ` : '';
+                const characterImages = isCharacter ? (() => {
+                    let html = '<div class="character-sheet-grid">';
+                    const v = asset.current_version || 1;
+                    for (const angle of ['base', 'left_angle', 'right_angle', 'full_body']) {
+                        const filename = `${asset.asset_id}_v${v}_${angle}.png`;
+                        const imgSrc = `/pipeline/${currentJob.job_id}/assets/characters/gen/${encodeURIComponent(filename)}`;
+                        html += `<div class="sheet-angle"><img src="${imgSrc}" alt="${angle}"><span>${angle.replace('_', ' ')}</span></div>`;
+                    }
+                    return html + '</div>';
+                })() : '';
                 return `<div class="card" id="card_${idEsc}">
-                    <h3>${nameEsc} <span class="source-badge ${source}">${source}</span></h3>
+                    <h3>${nameEsc} <span class="source-badge ${source}">${source}</span>${isCharacter ? `<span class="version-badge">v${currentVersion}</span>` : ''}</h3>
                     ${src ? `<img src="${src}" id="img_${idEsc}">` : ''}
+                    ${isCharacter ? characterImages : ''}
+                    ${versionSelector}
                     <div class="input-group"><label>Full Prompt (sent to generator)</label><textarea id="prompt_${idEsc}" rows="3">${fullEsc}</textarea></div>
                     <div class="input-group"><label>Description (used if full prompt empty)</label><textarea id="desc_${idEsc}" rows="3">${descEsc}</textarea></div>
                     <div class="input-group">
@@ -356,6 +394,25 @@
         async function setAssetUrl(assetId, url) {
             if (!url || !url.trim()) return;
             await api(`/jobs/${currentJob.job_id}/assets/${assetId}/url`, { method: 'POST', body: JSON.stringify({ url: url.trim() }) });
+            loadJob();
+        }
+
+        const versionState = {};
+        function prevVersion(assetId) {
+            if (!versionState[assetId]) versionState[assetId] = 1;
+            versionState[assetId] = Math.max(1, versionState[assetId] - 1);
+            document.getElementById(`version_num_${assetId}`).textContent = versionState[assetId];
+        }
+        function nextVersion(assetId) {
+            const asset = (currentJob.asset_manifest || []).find(a => a.asset_id === assetId);
+            const maxV = asset ? (asset.current_version || 1) : 1;
+            if (!versionState[assetId]) versionState[assetId] = 1;
+            versionState[assetId] = Math.min(maxV, versionState[assetId] + 1);
+            document.getElementById(`version_num_${assetId}`).textContent = versionState[assetId];
+        }
+        async function selectPreferred(assetId) {
+            const v = versionState[assetId] || 1;
+            await api(`/jobs/${currentJob.job_id}/assets/${assetId}/select-version`, { method: 'POST', body: JSON.stringify({ version: v }) });
             loadJob();
         }
 
