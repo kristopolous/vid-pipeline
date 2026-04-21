@@ -27,7 +27,8 @@
         .btn-secondary:hover { background: #5a5a5a; }
 
         .scene-grid { display: flex; flex-direction: column; gap: 16px; }
-        .scene-row { display: grid; grid-template-columns: 180px 1fr 260px 320px; gap: 16px; background: #2a2a2a; border-radius: 8px; padding: 16px; align-items: start; }
+        .scene-row { display: grid; grid-template-columns: 180px 260px 320px; gap: 16px; background: #2a2a2a; border-radius: 8px; padding: 16px; align-items: start; }
+        .scene-info-col { display: flex; flex-direction: column; gap: 12px; }
         .scene-row h3 { color: #fff; margin: 0; font-size: 14px; }
         .scene-row p { font-size: 11px; color: #aaa; margin: 4px 0; }
         .scene-row .timing { font-size: 10px; color: #666; }
@@ -192,14 +193,16 @@ const src = ad.has_gen ? `/pipeline/${currentJob.job_id}/assets/${ad.type}s/gen/
                 }).join('');
 
                 return `<div class="scene-row">
-                    <div class="scene-info">
-                        <h3>Shot ${pkg.shot_id} <span class="source-badge ${status}">${status}</span></h3>
-                        <p>${pkg.duration_seconds}s | ${pkg.shot_type}</p>
-                        <div class="timing">${(pkg.timing_breakdown || []).map(t => `<div>${t.start}-${t.end}: ${t.action}</div>`).join('')}</div>
-                    </div>
-                    <div class="scene-assets">
-                        <strong>Select assets:</strong>
-                        <div class="asset-select-grid">${assetsHtml || 'None'}</div>
+                    <div class="scene-info-col">
+                        <div class="scene-info">
+                            <h3>Shot ${pkg.shot_id} <span class="source-badge ${status}">${status}</span></h3>
+                            <p>${pkg.duration_seconds}s | ${pkg.shot_type}</p>
+                            <div class="timing">${(pkg.timing_breakdown || []).map(t => `<div>${t.start}-${t.end}: ${t.action}</div>`).join('')}</div>
+                        </div>
+                        <div class="scene-assets">
+                            <strong>Select assets:</strong>
+                            <div class="asset-select-grid">${assetsHtml || 'None'}</div>
+                        </div>
                     </div>
                     <div class="scene-composite">
                         <strong>Composite keyframe:</strong>
@@ -291,15 +294,19 @@ const src = ad.has_gen ? `/pipeline/${currentJob.job_id}/assets/${ad.type}s/gen/
         async function updateAsset(assetId) {
             const btn = document.getElementById(`btn_${assetId}`);
             const img = document.getElementById(`img_${assetId}`);
-            btn.textContent = 'Generating...';
+            btn.textContent = 'Saving...';
             btn.disabled = true;
-            if (img) img.style.opacity = '0.5';
             try {
                 const desc = document.getElementById(`desc_${assetId}`).value;
                 const prompt = document.getElementById(`prompt_${assetId}`).value;
                 await api(`/jobs/${currentJob.job_id}/assets/${assetId}`, { method: 'POST', body: JSON.stringify({ description: desc, full_prompt: prompt }) });
+                // Now regenerate with new prompt
+                btn.textContent = 'Generating...';
+                await api(`/jobs/${currentJob.job_id}/assets/${assetId}/regenerate`, { method: 'POST' });
                 loadJob();
-            } finally {
+            } catch (e) { showError(e.message); } finally {
+                btn.textContent = 'Regen';
+                btn.disabled = false;
                 if (img) img.style.opacity = '1';
             }
         }

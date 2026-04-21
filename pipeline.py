@@ -782,12 +782,8 @@ If not ambiguous, output just the name as-is."""
                     draw.text((10, current_y + i * 16), line, fill="#aaa", font=small_font)
                 current_y += label_height
 
-            label_text = f"Shot {package['shot_id']} | {package.get('shot_type', 'medium')} | {package.get('duration_seconds', 0)}s"
-            draw.rectangle([(0, current_y), (total_width, current_y + label_height)], fill="#111")
-            bbox = draw.textbbox((0, 0), label_text, font=font)
-            text_w = bbox[2] - bbox[0]
-            text_x = (total_width - text_w) // 2
-            draw.text((text_x, current_y + 8), label_text, fill="#888", font=font)
+            # Don't add text labels - FLUX will generate clean composite
+            # label_text intentionally removed
 
             renders_dir = job_dir / "renders"
             renders_dir.mkdir(parents=True, exist_ok=True)
