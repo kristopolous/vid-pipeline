@@ -528,6 +528,12 @@ async def regenerate_asset(job_id: str, asset_id: str):
     asset["has_web"] = False
     asset["needs_regen"] = True
 
+    if asset_type == "character":
+        current_version = asset.get("current_version", 1)
+        new_version = current_version + 1
+        asset["current_version"] = new_version
+        asset["preferred_version"] = asset.get("preferred_version", current_version)
+
     with open(manifest_path, "w") as f:
         json.dump(assets, f, indent=2)
 
@@ -541,7 +547,7 @@ async def regenerate_asset(job_id: str, asset_id: str):
         with open(sp_file, "w") as f:
             json.dump(sp, f, indent=2)
 
-    return {"status": "ok", "asset_id": asset_id, "message": "Asset marked for regeneration"}
+    return {"status": "ok", "asset_id": asset_id, "message": "Asset marked for regeneration", "version": asset.get("current_version", 1)}
 
 
 @app.post("/api/jobs/{job_id}/assets/{asset_id}/upload")
@@ -798,6 +804,36 @@ async def update_harness(job_id: str, request: UpdateHarnessRequest):
             json.dump(sp, f, indent=2)
 
     return {"status": "ok"}
+
+
+@app.post("/api/jobs/{job_id}/assets/{asset_id}/select-version")
+async def select_preferred_version(job_id: str, asset_id: str, request: dict):
+    job_dir = get_job_dir(job_id)
+    if not job_dir.exists():
+        raise HTTPException(status_code=404, detail="Job not found")
+
+    manifest_path = job_dir / "asset_manifest.json"
+    if not manifest_path.exists():
+        raise HTTPException(status_code=404, detail="Asset manifest not found")
+
+    with open(manifest_path) as f:
+        assets = json.load(f)
+
+    version = request.get("version")
+    if version is None:
+        raise HTTPException(status_code=400, detail="Version required")
+
+    for asset in assets:
+        if asset["asset_id"] == asset_id:
+            asset["preferred_version"] = version
+            break
+    else:
+        raise HTTPException(status_code=404, detail="Asset not found")
+
+    with open(manifest_path, "w") as f:
+        json.dump(assets, f, indent=2)
+
+    return {"status": "ok", "asset_id": asset_id, "preferred_version": version}
 
 
 @app.get("/api/config")
