@@ -78,11 +78,17 @@
 
         .error { background: #5a2d2d; padding: 12px; border-radius: 6px; color: #c77; }
         .empty { text-align: center; padding: 40px; color: #666; }
+        .snackbar { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: #333; color: #fff; padding: 12px 24px; border-radius: 6px; font-size: 14px; z-index: 1000; display: none; box-shadow: 0 4px 12px rgba(0,0,0,0.3); }
+        .snackbar.show { display: block; animation: fadein 0.3s; }
+        .snackbar .spinner { display: inline-block; width: 16px; height: 16px; border: 2px solid #666; border-top-color: #fff; border-radius: 50%; animation: spin 0.8s linear infinite; margin-right: 8px; vertical-align: middle; }
+        @keyframes fadein { from { opacity: 0; transform: translateX(-50%) translateY(10px); } to { opacity: 1; transform: translateX(-50%) translateY(0); } }
+        @keyframes spin { to { transform: rotate(360deg); } }
     </style>
 </head>
 <body>
     <div class="container">
         <div id="error" class="error" style="display: none;"></div>
+        <div id="snackbar" class="snackbar"><span class="spinner"></span><span id="snackbar-text">Working...</span></div>
         <div class="job-select">
             <select id="jobSelect" onchange="loadJob()">
                 <option value="">Select a job...</option>
@@ -354,20 +360,48 @@
         }
         function hideError() { showError(''); }
 
+        let snackbarTimeout = null;
+        function showSnackbar(msg, duration = 0) {
+            const el = document.getElementById('snackbar');
+            document.getElementById('snackbar-text').textContent = msg;
+            el.classList.add('show');
+            if (snackbarTimeout) clearTimeout(snackbarTimeout);
+            if (duration > 0) {
+                snackbarTimeout = setTimeout(hideSnackbar, duration);
+            }
+        }
+        function hideSnackbar() {
+            document.getElementById('snackbar').classList.remove('show');
+            if (snackbarTimeout) clearTimeout(snackbarTimeout);
+            snackbarTimeout = null;
+        }
+        function wrapAsync(fn) {
+            return async (...args) => {
+                showSnackbar('Working...');
+                try {
+                    await fn(...args);
+                } finally {
+                    hideSnackbar();
+                }
+            };
+        }
+
         async function updateAsset(assetId) {
             const btn = document.getElementById(`btn_${assetId}`);
             const img = document.getElementById(`img_${assetId}`);
             btn.textContent = 'Saving...';
             btn.disabled = true;
+            showSnackbar('Updating asset...');
             try {
                 const desc = document.getElementById(`desc_${assetId}`).value;
                 const prompt = document.getElementById(`prompt_${assetId}`).value;
                 await api(`/jobs/${currentJob.job_id}/assets/${assetId}`, { method: 'POST', body: JSON.stringify({ description: desc, full_prompt: prompt }) });
-                // Now regenerate with new prompt
                 btn.textContent = 'Generating...';
+                showSnackbar('Generating character sheet...');
                 await api(`/jobs/${currentJob.job_id}/assets/${assetId}/regenerate`, { method: 'POST' });
                 loadJob();
-            } catch (e) { showError(e.message); } finally {
+                showSnackbar('Done!', 2000);
+            } catch (e) { showError(e.message); hideSnackbar(); } finally {
                 btn.textContent = 'Regen';
                 btn.disabled = false;
                 if (img) img.style.opacity = '1';
@@ -380,12 +414,14 @@
             if (!file) return;
             btn.textContent = 'Uploading...';
             btn.disabled = true;
+            showSnackbar('Uploading image...');
             const fd = new FormData();
             fd.append('file', file);
             try {
                 await fetch(`/api/jobs/${currentJob.job_id}/assets/${assetId}/upload`, { method: 'POST', body: fd });
                 loadJob();
-            } finally {
+                showSnackbar('Done!', 2000);
+            } catch (e) { showError(e.message); hideSnackbar(); } finally {
                 btn.textContent = 'Upload';
                 btn.disabled = false;
             }
@@ -439,10 +475,12 @@
             if (!btn) return;
             btn.textContent = 'Generating...';
             btn.disabled = true;
+            showSnackbar('Generating composite...');
             try {
                 const resp = await api(`/jobs/${currentJob.job_id}/scene_packages/${shotId}/composite`, { method: 'POST' });
                 if (resp.keyframe_image) loadJob();
-            } catch (e) { showError(e.message); } finally {
+                showSnackbar('Done!', 2000);
+            } catch (e) { showError(e.message); hideSnackbar(); } finally {
                 btn.textContent = 'Gen Composite';
                 btn.disabled = false;
             }
@@ -453,10 +491,12 @@
             const originalText = btn.textContent;
             btn.textContent = 'Rendering...';
             btn.disabled = true;
+            showSnackbar('Rendering video (may take a few minutes)...');
             try {
                 await api('/render', { method: 'POST', body: JSON.stringify({ job_id: currentJob.job_id, shot_id: shotId }) });
                 loadJob();
-            } catch (e) { showError(e.message); } finally {
+                showSnackbar('Render complete!', 3000);
+            } catch (e) { showError(e.message); hideSnackbar(); } finally {
                 btn.textContent = originalText;
                 btn.disabled = false;
             }
