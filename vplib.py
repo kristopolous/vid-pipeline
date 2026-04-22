@@ -50,7 +50,7 @@ class VPLib:
         torch.cuda.synchronize()
         return image
 
-    def generate_character_sheet(
+def generate_character_sheet(
         self,
         asset_id: str,
         name: str,
@@ -60,10 +60,10 @@ class VPLib:
     ) -> dict:
         base_prompt = full_prompt or f"{year_hint}, realistic full color portrait photograph, {description}"
         angles = {
-            "base": base_prompt,
-            "left_angle": f"{base_prompt}, facing left, left profile view, neutral gray background",
-            "right_angle": f"{base_prompt}, facing right, right profile view, neutral gray background",
-            "full_body": f"{base_prompt}, full body shot, standing, neutral background, from distance",
+            "headshot": base_prompt,
+            "left": f"{base_prompt}, facing left, left profile view, neutral gray background",
+            "right": f"{base_prompt}, facing right, right profile view, neutral gray background",
+            "full": f"{base_prompt}, full body shot, standing, neutral background, from distance",
         }
 
         results = {}
@@ -72,7 +72,12 @@ class VPLib:
             try:
                 image = self.generate_image(prompt)
                 if image:
-                    results[angle_name] = image
+                    results[angle_name] = {
+                        "image": image,
+                        "prompt": prompt,
+                        "angle": angle_name,
+                        "model": "flux2-klein-9B"
+                    }
                     self.logger.info(f"Generated {angle_name}")
             except Exception as e:
                 self.logger.error(f"Failed to generate {angle_name}: {e}")

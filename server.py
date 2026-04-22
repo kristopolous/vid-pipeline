@@ -537,28 +537,31 @@ async def regenerate_asset(job_id: str, asset_id: str):
     return {"status": "ok", "asset_id": asset_id, "message": "Asset marked for regeneration", "version": asset.get("current_version", 1)}
 
 
-@app.get("/pipeline/{job_id}/assets/{type}s/gen/{filename}")
-async def serve_asset_image(job_id: str, type: str, filename: str):
-    """Serve asset image - wait for it to exist with timeout."""
-    import subprocess
+@app.get("/pipeline/{job_id}/assets/{full_path:path}")
+async def serve_asset_image(job_id: str, full_path: str):
+    """Serve asset image from versioned directory."""
     import time
 
     job_dir = Path(__file__).parent / "pipeline" / job_id
-    asset_path = job_dir / "assets" / f"{type}s" / "gen" / filename
+    asset_path = job_dir / "assets" / full_path
 
     timeout = 300
     start = time.time()
     while time.time() - start < timeout:
-        if asset_path.exists() and asset_path.stat().st_size > 0:
+        if asset_path.exists() and asset_path.stat().st_size > 100:
             return FileResponse(asset_path)
         time.sleep(0.5)
 
-    return FileResponse(Path(__file__).parent / "loading.png") if Path(__file__).parent.joinpath("loading.png").exists() else Response(status_code=404)
+    loading_path = Path(__file__).parent / "loading.png"
+    if loading_path.exists():
+        return FileResponse(loading_path)
+
+    return Response(status_code=404, content="Image not found")
 
 
 @app.post("/api/jobs/{job_id}/assets/{asset_id}/regen-now")
 async def regenerate_asset_now(job_id: str, asset_id: str):
-    """Actually regenerate an asset now."""
+    """Actually regenerate an asset now with proper versioning."""
     job_dir = get_job_dir(job_id)
     if not job_dir.exists():
         raise HTTPException(status_code=404, detail="Job not found")
@@ -580,7 +583,7 @@ async def regenerate_asset_now(job_id: str, asset_id: str):
         raise HTTPException(status_code=404, detail="Asset not found")
 
     asset_type = asset["type"]
-    subdir = asset_type + "s"
+    name = asset.get("name", asset_id).lower().replace(" ", "_")
 
     context_path = job_dir / "context.txt"
     context = context_path.read_text().strip() if context_path.exists() else ""
@@ -593,7 +596,7 @@ async def regenerate_asset_now(job_id: str, asset_id: str):
         except:
             pass
 
-    logger.info(f"Generating {asset_id} with {asset_type}")
+    logger.info(f"Generating {asset_id} ({asset_type})")
 
     try:
         if asset_type == "character":
@@ -602,7 +605,7 @@ async def regenerate_asset_now(job_id: str, asset_id: str):
             asset["current_version"] = new_version
             asset["preferred_version"] = asset.get("preferred_version", current_version)
 
-            sheet_images = vplib.generate_character_sheet(
+            sheet_data = vplib.generate_character_sheet(
                 asset_id,
                 asset.get("name", asset_id),
                 asset.get("visual_description", ""),
@@ -610,30 +613,101 @@ async def regenerate_asset_now(job_id: str, asset_id: str):
                 asset.get("full_prompt", ""),
             )
 
-            sheet_results = {}
-            for angle_name, image in sheet_images.items():
-                filename = f"{asset_id}_v{new_version}_{angle_name}.png"
-                gen_path = job_dir / "assets" / subdir / "gen" / filename
-                image.save(gen_path)
-                sheet_results[angle_name] = filename
+            version_dir = job_dir / "assets" / "characters" / name / f"v{new_version}"
+            version_dir.mkdir(parents=True, exist_ok=True)
 
-            asset["character_sheet"] = sheet_results
+            meta = {
+                "version": new_version,
+                "asset_id": asset_id,
+                "name": asset.get("name"),
+                "description": asset.get("visual_description"),
+                "year_hint": year_hint,
+                "full_prompt": asset.get("full_prompt"),
+                "generated_at": __import__("datetime").datetime.now().isoformat(),
+                "angles": {}
+            }
 
-            base_filename = sheet_results.get("base", f"{asset_id}_v{new_version}_base.png")
+            for angle, data in sheet_data.items():
+                image = data["image"]
+                png_path = version_dir / f"{angle}.png"
+                image.save(png_path)
+                meta["angles"][angle] = {
+                    "filename": f"{angle}.png",
+                    "prompt": data.get("prompt"),
+                    "model": data.get("model")
+                }
+                logger.info(f"Saved {png_path}")
+
+            meta_path = version_dir / "meta.json"
+            with open(meta_path, "w") as f:
+                json.dump(meta, f, indent=2)
+
+            asset["character_sheet"] = {"version": new_version, "path": f"characters/{name}/v{new_version}"}
             asset["has_gen"] = True
+            asset["source"] = "generated"
 
-        else:
+        elif asset_type == "background":
+            current_version = asset.get("current_version", 1)
+            new_version = current_version + 1
+
+            version_dir = job_dir / "assets" / "backgrounds" / name / f"v{new_version}"
+            version_dir.mkdir(parents=True, exist_ok=True)
+
             prompt = asset.get("full_prompt") or f"{year_hint}, {asset.get('visual_description', '')}"
             image = vplib.generate_image(prompt)
-            if image:
-                filename = f"{asset_id}.png"
-                gen_path = job_dir / "assets" / subdir / "gen" / filename
-                image.save(gen_path)
-                asset["has_gen"] = True
-                logger.info(f"Saved {gen_path}")
+
+            png_path = version_dir / "background.png"
+            image.save(png_path)
+
+            meta = {
+                "version": new_version,
+                "asset_id": asset_id,
+                "name": asset.get("name"),
+                "description": asset.get("visual_description"),
+                "prompt": prompt,
+                "generated_at": __import__("datetime").datetime.now().isoformat()
+            }
+            with open(version_dir / "meta.json", "w") as f:
+                json.dump(meta, f, indent=2)
+
+            asset["current_version"] = new_version
+            asset["preferred_version"] = asset.get("preferred_version", current_version)
+            asset["has_gen"] = True
+            asset["source"] = "generated"
+
+        else:
+            current_version = asset.get("current_version", 1)
+            new_version = current_version + 1
+
+            version_dir = job_dir / "assets" / "objects" / name / f"v{new_version}"
+            version_dir.mkdir(parents=True, exist_ok=True)
+
+            prompt = asset.get("full_prompt") or f"{year_hint}, {asset.get('visual_description', '')}"
+            image = vplib.generate_image(prompt)
+
+            png_path = version_dir / "object.png"
+            image.save(png_path)
+
+            meta = {
+                "version": new_version,
+                "asset_id": asset_id,
+                "name": asset.get("name"),
+                "description": asset.get("visual_description"),
+                "prompt": prompt,
+                "generated_at": __import__("datetime").datetime.now().isoformat()
+            }
+            with open(version_dir / "meta.json", "w") as f:
+                json.dump(meta, f, indent=2)
+
+            asset["current_version"] = new_version
+            asset["preferred_version"] = asset.get("preferred_version", current_version)
+            asset["has_gen"] = True
+            asset["source"] = "generated"
 
     except Exception as e:
         logger.error(f"Generation failed: {e}")
+        import traceback
+        logger.error(traceback.format_exc())
         asset["has_gen"] = False
         asset["last_error"] = str(e)
 
@@ -670,19 +744,32 @@ async def upload_asset_image(job_id: str, asset_id: str, file: UploadFile):
         raise HTTPException(status_code=400, detail="File must be an image")
 
     asset_type = asset["type"]
-    subdir = asset_type + "s"
-    gen_path = job_dir / "assets" / subdir / "gen" / f"{asset_id}.png"
+    name = asset.get("name", asset_id).lower().replace(" ", "_")
+    current_version = asset.get("current_version", 1)
 
-    gen_path.parent.mkdir(parents=True, exist_ok=True)
+    if asset_type == "character":
+        version_dir = job_dir / "assets" / "characters" / name / f"v{current_version}"
+    elif asset_type == "background":
+        version_dir = job_dir / "assets" / "backgrounds" / name / f"v{current_version}"
+    else:
+        version_dir = job_dir / "assets" / "objects" / name / f"v{current_version}"
+
+    version_dir.mkdir(parents=True, exist_ok=True)
 
     content = await file.read()
-    with open(gen_path, "wb") as f:
+    filename = "headshot.png" if asset_type == "character" else "image.png"
+    img_path = version_dir / filename
+    with open(img_path, "wb") as f:
         f.write(content)
 
-    if asset.get("name"):
-        from PIL import Image
-        img = Image.open(gen_path).convert("RGB")
-        add_text_label(gen_path, gen_path, asset["name"])
+    meta = {
+        "version": current_version,
+        "asset_id": asset_id,
+        "source": "uploaded",
+        "uploaded_at": __import__("datetime").datetime.now().isoformat()
+    }
+    with open(version_dir / "meta.json", "w") as f:
+        json.dump(meta, f, indent=2)
 
     asset["has_gen"] = True
     asset["has_web"] = False
@@ -691,17 +778,7 @@ async def upload_asset_image(job_id: str, asset_id: str, file: UploadFile):
     with open(manifest_path, "w") as f:
         json.dump(assets, f, indent=2)
 
-    for sp_file in (job_dir / "scene_packages").glob("*.json"):
-        with open(sp_file) as f:
-            sp = json.load(f)
-        for a in sp.get("assets", []):
-            if a["asset_id"] == asset_id:
-                sp["status"] = "stale"
-                break
-        with open(sp_file, "w") as f:
-            json.dump(sp, f, indent=2)
-
-    return {"status": "ok", "asset_id": asset_id, "message": "Image uploaded successfully"}
+    return {"status": "ok", "asset_id": asset_id, "message": f"Uploaded to {version_dir}"}
 
 
 @app.post("/api/jobs/{job_id}/assets/{asset_id}/url")
