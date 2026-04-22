@@ -31,6 +31,9 @@ except ImportError:
     WAN2GP_AVAILABLE = False
     WanGPSession = None
 
+from vplib import VPLib
+vplib = VPLib()
+
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s [%(levelname)s] %(message)s",
@@ -367,46 +370,30 @@ async def render_scene(request: RenderRequest):
         retry_count = package.get("retry_count", 0)
 
         try:
-            from diffusers import LTXVideoPipeline
-            import torch
-
-            pipeline = LTXVideoPipeline.from_pretrained(
-                "Lightricks/LTX-2",
-                torch_dtype=torch.bfloat16,
-            )
-            pipeline.enable_model_cpu_offload()
-            pipeline.enable_vae_spatial_tiling()
-
             prompt = package["full_prompt"]
             resolution = package.get("resolution", "1280x704")
             width, height = map(int, resolution.split("x"))
             duration = int(package.get("duration_seconds", 4))
             num_frames = duration * 24
+            negative = package.get("harness", {}).get("negative_prompt", "anime, cartoon, low quality, distorted")
 
             logger.info(f"Rendering shot {package['shot_id']} with LTX-2: {num_frames} frames, {resolution}")
 
-            output = pipeline(
+            frames = vplib.render_video(
                 prompt=prompt,
-                negative_prompt=package.get("harness", {}).get("negative_prompt", "anime, cartoon, low quality, distorted"),
-                height=height,
+                negative_prompt=negative,
                 width=width,
+                height=height,
                 num_frames=num_frames,
-                num_inference_steps=8,
-                guidance_scale=3.5,
             )
 
-            frames = output.frames[0]
             if frames:
                 renders_dir = job_dir / "renders"
                 renders_dir.mkdir(parents=True, exist_ok=True)
                 final_path = renders_dir / f"{package['shot_id']}_take_{retry_count + 1}.mp4"
 
-                from PIL import Image
                 import numpy as np
-
-                frames_np = np.stack([np.array(f) for f in frames])
                 import tempfile
-                import subprocess
 
                 with tempfile.NamedTemporaryFile(suffix='.mp4', delete=False) as tmp:
                     tmp_path = tmp.name
@@ -728,9 +715,7 @@ async def regenerate_composite(job_id: str, shot_id: str):
             asset["has_web"] = web_path.exists()
 
     try:
-        from pipeline import Pipeline
-        pipeline = Pipeline()
-        composite_path = pipeline._composite_scene_image(job_dir, package, assets)
+        composite_path = vplib.composite_scene_image(job_dir, package, assets)
     except Exception as e:
         logger.error(f"Composite failed: {e}")
         raise HTTPException(status_code=500, detail=f"Composite failed: {e}")
