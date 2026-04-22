@@ -50,13 +50,13 @@ class VPLib:
         torch.cuda.synchronize()
         return image
 
-def generate_character_sheet(
-        self,
-        asset_id: str,
-        name: str,
-        description: str,
-        year_hint: str = "1980s",
-        full_prompt: str = "",
+    def generate_character_sheet(
+            self,
+            asset_id: str,
+            name: str,
+            description: str,
+            year_hint: str = "1980s",
+            full_prompt: str = "",
     ) -> dict:
         base_prompt = full_prompt or f"{year_hint}, realistic full color portrait photograph, {description}"
         angles = {
@@ -84,7 +84,7 @@ def generate_character_sheet(
         return results
 
     def search_object_image(
-        self, name: str, year_hint: str, api_key: str
+            self, name: str, year_hint: str, api_key: str
     ) -> "Image.Image | None":
         import io
         import requests
@@ -120,7 +120,7 @@ def generate_character_sheet(
         return None
 
     def add_text_label(
-        self, image: "Image.Image", output_path: Path, label: str
+            self, image: "Image.Image", output_path: Path, label: str
     ) -> None:
         label_clean = label.strip()
         temp_path = output_path.with_suffix(".tmp.png")
@@ -147,7 +147,7 @@ def generate_character_sheet(
                 temp_path.rename(output_path)
 
     def load_asset_image(
-        self, job_dir: Path, asset: dict, asset_type: str
+            self, job_dir: Path, asset: dict, asset_type: str
     ) -> "Image.Image | None":
         from PIL import Image
 
@@ -163,7 +163,7 @@ def generate_character_sheet(
         return None
 
     def composite_scene_image(
-        self, job_dir: Path, package: dict, assets: list[dict]
+            self, job_dir: Path, package: dict, assets: list[dict]
     ) -> Path | None:
         from PIL import Image, ImageDraw, ImageFont
 
@@ -287,14 +287,14 @@ def generate_character_sheet(
             return None
 
     def render_video(
-        self,
-        prompt: str,
-        negative_prompt: str = "anime, cartoon, low quality, distorted",
-        width: int = 1280,
-        height: int = 704,
-        num_frames: int = 96,
-        num_inference_steps: int = 8,
-        guidance_scale: float = 3.5,
+            self,
+            prompt: str,
+            negative_prompt: str = "anime, cartoon, low quality, distorted",
+            width: int = 1280,
+            height: int = 704,
+            num_frames: int = 96,
+            num_inference_steps: int = 8,
+            guidance_scale: float = 3.5,
     ) -> "Image.Image | None":
         from diffusers import LTXVideoPipeline
         import torch
