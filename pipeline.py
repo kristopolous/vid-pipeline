@@ -368,7 +368,7 @@ Format: One per line as "name is description"
 Focus on: indoor/outdoor settings, specific locations mentioned, environments where actions occur."""
 
         backgrounds_text = self._llm_call(system_prompt, self.scene)
-        self.logger.info(f"{job_id}: First pass backgrounds:\n{backgrounds_text}")
+        self.logger.info(f"{job_id}: First pass backgrounds:\n{backgrounds_text.replace(chr(10), chr(10) + '   ')}")
 
         backgrounds_text = self._clean_backgrounds(backgrounds_text)
         (job_dir / "backgrounds.txt").write_text(backgrounds_text)
@@ -521,18 +521,11 @@ Cleaned backgrounds (one per line):"""
                         else:
                             self.logger.info(f"{job_id}: No web image found for {asset_id}, skipping")
                     elif asset_type == "character":
-                        self.logger.info(f"{job_id}: Generating character sheet for '{asset_id}'...")
-                        sheet_results = self._generate_character_sheet(job_id, asset, year_hint, assets_dir)
-                        asset["character_sheet"] = sheet_results
+                        self.logger.info(f"{job_id}: Character '{asset_id}' marked for worker generation")
+                        asset["needs_regen"] = True
                     else:
-                        prompt = full_prompt or f"{year_hint}, {description}"
-                        self.logger.info(f"{job_id}: Generating {asset_type} '{asset_id}': {prompt[:80]}...")
-                        image = self.generate_image(prompt)
-                        if image:
-                            gen_path = assets_dir / subdir / "gen" / f"{asset_id}.png"
-                            image.save(gen_path)
-                            self.add_text_label(image, gen_path, asset["name"])
-                            self.logger.info(f"{job_id}: Saved (gen) {gen_path}")
+                        self.logger.info(f"{job_id}: {asset_type.capitalize()} '{asset_id}' marked for worker generation")
+                        asset["needs_regen"] = True
 
                 except Exception as e:
                     self.logger.error(f"{job_id}: Failed to generate {asset_id}: {e}")
