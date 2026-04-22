@@ -1,3 +1,9 @@
-config.json
-__pycache__
-pipeline/*
+*.png
+*.jpg
+*.mp4
+*.json
+!.gitkeep
+/pipeline/
+__pycache__/
+*.pyc
+.DS_Store
