@@ -96,11 +96,15 @@
             <button class="btn btn-secondary" onclick="loadJobs()">Refresh</button>
         </div>
         <div class="tabs">
-            <button class="tab active" id="scenes-tab" onclick="showTab('scenes')">Scenes</button>
+            <button class="tab active" id="script-tab" onclick="showTab('script')">Script</button>
+            <button class="tab" id="scenes-tab" onclick="showTab('scenes')">Scenes</button>
             <button class="tab" id="characters-tab" onclick="showTab('characters')">Characters</button>
             <button class="tab" id="objects-tab" onclick="showTab('objects')">Objects</button>
             <button class="tab" id="backgrounds-tab" onclick="showTab('backgrounds')">Backgrounds</button>
             <button class="tab" id="style-tab" onclick="showTab('style')">Style</button>
+        </div>
+        <div id="script" class="tab-content active">
+            <div id="scriptEditor"></div>
         </div>
         <div id="scenes" class="tab-content active">
             <div id="scenesGrid" class="scene-grid"></div>
@@ -179,6 +183,7 @@
         }
 
         function renderAll() {
+            renderScript();
             renderScenes();
             renderCharacters();
             renderObjects();
@@ -336,6 +341,71 @@
                     </div>
                 </div>`;
             }).join('');
+        }
+
+        function renderScript() {
+            const job_id = currentJob.job_id;
+            const scriptEditor = document.getElementById('scriptEditor');
+
+            const scene = currentJob.scene || '';
+            const style = currentJob.style || '';
+            const context = currentJob.context || '';
+
+            const characters = (currentJob.asset_manifest || []).filter(a => a.type === 'character');
+            const objects = (currentJob.asset_manifest || []).filter(a => a.type === 'object');
+            const backgrounds = (currentJob.asset_manifest || []).filter(a => a.type === 'background');
+
+            scriptEditor.innerHTML = `
+                <div class="card">
+                    <h3>New Job</h3>
+                    <div class="input-group"><label>Scene / Story</label><textarea id="input_scene" rows="8" placeholder="Write your scene here...">${scene}</textarea></div>
+                    <div class="input-group"><label>Style</label><textarea id="input_style" rows="3" placeholder="Film stock, mood, era...">${style}</textarea></div>
+                    <div class="input-group"><label>Context / Setting</label><textarea id="input_context" rows="3" placeholder="Time period, location details...">${context}</textarea></div>
+                    <div class="input-group"><label>Characters</label><textarea id="input_characters" rows="4" placeholder="One per line: Name is description">${characters.map(c => `${c.name} is ${c.visual_description}`).join('\n')}</textarea></div>
+                    <div class="input-group"><label>Objects</label><textarea id="input_objects" rows="4" placeholder="One per line: Name: description">${objects.map(o => `${o.name}: ${o.visual_description}`).join('\n')}</textarea></div>
+                    <div class="input-group"><label>Backgrounds</label><textarea id="input_backgrounds" rows="4" placeholder="One per line: Name is description">${backgrounds.map(b => `${b.name} is ${b.visual_description}`).join('\n')}</textarea></div>
+                    <div class="actions">
+                        <button type="button" class="btn btn-primary" onclick="createJob()">Create Job</button>
+                    </div>
+                </div>
+            `;
+        }
+
+        async function createJob() {
+            const scene = document.getElementById('input_scene').value;
+            const style = document.getElementById('input_style').value;
+            const context = document.getElementById('input_context').value;
+            const characters = document.getElementById('input_characters').value;
+            const objects = document.getElementById('input_objects').value;
+            const backgrounds = document.getElementById('input_backgrounds').value;
+
+            if (!scene.trim()) {
+                showError('Scene is required');
+                return;
+            }
+
+            showSnackbar('Creating job...');
+            try {
+                const result = await api('/jobs', {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        scene,
+                        style,
+                        context,
+                        characters,
+                        objects,
+                        backgrounds
+                    })
+                });
+
+                showSnackbar('Job created! Loading...');
+                document.getElementById('jobSelect').value = result.job_id;
+                loadJob();
+                showSnackbar('Done!', 2000);
+            } catch (e) {
+                showError(e.message);
+                hideSnackbar();
+            }
         }
 
         function renderStyle() {
