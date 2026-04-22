@@ -289,8 +289,18 @@
             if (!assets.length) return '<div class="empty">No assets</div>';
             return assets.map(asset => {
                 const idEsc = (asset.asset_id || '').replace(/'/g, "\\'").replace(/`/g, '\\`');
-                const src = asset.has_gen ? `/pipeline/${currentJob.job_id}/assets/${type}s/gen/${encodeURIComponent(idEsc + '.png')}` :
-                          asset.has_web ? `/pipeline/${currentJob.job_id}/assets/${type}s/web/${encodeURIComponent(idEsc + '.png')}` : null;
+                const name = (asset.name || asset.asset_id).toLowerCase().replace(/ /g, '_');
+                const v = asset.current_version || 1;
+                let src = null;
+                if (asset.has_gen && asset.type === 'character') {
+                    src = `/pipeline/${currentJob.job_id}/assets/characters/${name}/v${v}/headshot.png`;
+                } else if (asset.has_gen && asset.type === 'background') {
+                    src = `/pipeline/${currentJob.job_id}/assets/backgrounds/${name}/v${v}/background.png`;
+                } else if (asset.has_gen && asset.type === 'object') {
+                    src = `/pipeline/${currentJob.job_id}/assets/objects/${name}/v${v}/object.png`;
+                } else if (asset.has_web) {
+                    src = `/pipeline/${currentJob.job_id}/assets/${type}s/web/${encodeURIComponent(idEsc + '.png')}`;
+                }
                 const source = asset.source || (asset.has_gen ? 'generated' : asset.has_web ? 'web' : 'none');
                 const cleanName = stripMarkdown(asset.name);
                 const nameEsc = (cleanName || '').replace(/'/g, "\\'").replace(/`/g, '\\`');
@@ -317,10 +327,11 @@
                 const characterImages = isCharacter ? (() => {
                     let html = '<div class="character-sheet-grid">';
                     const v = asset.current_version || 1;
-                    for (const angle of ['base', 'left_angle', 'right_angle', 'full_body']) {
-                        const filename = `${asset.asset_id}_v${v}_${angle}.png`;
-                        const imgSrc = `/pipeline/${currentJob.job_id}/assets/characters/gen/${encodeURIComponent(filename)}`;
-                        html += `<div class="sheet-angle"><img src="${imgSrc}" alt="${angle}"><span>${angle.replace('_', ' ')}</span></div>`;
+                    const name = (asset.name || asset.asset_id).toLowerCase().replace(/ /g, '_');
+                    const angles = ['headshot', 'left', 'right', 'full'];
+                    for (const angle of angles) {
+                        const imgSrc = `/pipeline/${currentJob.job_id}/assets/characters/${name}/v${v}/${angle}.png`;
+                        html += `<div class="sheet-angle"><img src="${imgSrc}" alt="${angle}"><span>${angle}</span></div>`;
                     }
                     return html + '</div>';
                 })() : '';
