@@ -18,6 +18,8 @@ from typing import Any
 
 from PIL import Image
 
+from vplib import VPLib
+
 OpenAI = None
 
 CONFIG_PATH = Path(__file__).parent / "config.json"
@@ -45,7 +47,7 @@ class Background:
     description: str
 
 
-class Pipeline:
+class Pipeline(VPLib):
     def __init__(self, config_path: Path | None = None):
         self.config = self._load_config(config_path or CONFIG_PATH)
         self.text_config = self.config.get("text", {})
@@ -56,7 +58,7 @@ class Pipeline:
         self.backgrounds: list[Background] = []
         self.style = ""
         self.context = ""
-        self.scene = ""
+        super().__init__(self.config)
 
     def _load_config(self, path: Path) -> dict:
         if path.exists():
@@ -481,7 +483,7 @@ Focus on: indoor/outdoor settings, specific locations mentioned, environments wh
                         api_key = brave_api_key or ""
                         disambiguated = self._disambiguate_object_name(asset["name"], context)
                         self.logger.info(f"{job_id}: Disambiguated '{asset['name']}' -> '{disambiguated}'")
-                        image = self._search_object_image(
+                        image = self.search_object_image(
                             disambiguated,
                             year_hint,
                             api_key
@@ -489,7 +491,7 @@ Focus on: indoor/outdoor settings, specific locations mentioned, environments wh
                         if image:
                             web_path = assets_dir / subdir / "web" / f"{asset_id}.png"
                             image.save(web_path)
-                            self._montage_text_label(image, web_path, asset["name"])
+                            self.add_text_label(image, web_path, asset["name"])
                             self.logger.info(f"{job_id}: Saved (web) {web_path}")
                         else:
                             self.logger.info(f"{job_id}: No web image found for {asset_id}, skipping")
@@ -500,11 +502,11 @@ Focus on: indoor/outdoor settings, specific locations mentioned, environments wh
                     else:
                         prompt = full_prompt or f"{year_hint}, {description}"
                         self.logger.info(f"{job_id}: Generating {asset_type} '{asset_id}': {prompt[:80]}...")
-                        image = self._generate_image(prompt)
+                        image = self.generate_image(prompt)
                         if image:
                             gen_path = assets_dir / subdir / "gen" / f"{asset_id}.png"
                             image.save(gen_path)
-                            self._montage_text_label(image, gen_path, asset["name"])
+                            self.add_text_label(image, gen_path, asset["name"])
                             self.logger.info(f"{job_id}: Saved (gen) {gen_path}")
 
                 except Exception as e:
@@ -587,261 +589,23 @@ If not ambiguous, output just the name as-is."""
             self.logger.warning(f"Image search failed: {e}")
         return None
 
-    def _generate_image(self, prompt: str, ref_image: Image.Image | None = None) -> Image.Image | None:
-        from diffusers.pipelines.flux2.pipeline_flux2_klein import Flux2KleinPipeline
-        import torch
-
-        pipe = Flux2KleinPipeline.from_pretrained(
-            "black-forest-labs/FLUX.2-klein-9B",
-            torch_dtype=torch.bfloat16,
-        )
-        pipe.enable_model_cpu_offload()
-
-        self.logger.info(f"=== FLUX CALL. Prompt: {prompt[:80]}, ref_image: {ref_image is not None}")
-        if ref_image:
-            self.logger.info(f"Ref image size: {ref_image.size}, mode: {ref_image.mode}")
-            ref_image = ref_image.resize((512, 512), Image.Resampling.LANCZOS)
-            self.logger.info(f"Ref image resized to: {ref_image.size}")
-
-        kwargs = {
-            "prompt": prompt,
-            "height": 512,
-            "width": 512,
-            "num_inference_steps": 4,
-        }
-        if ref_image:
-            kwargs["image"] = ref_image
-
-        result = pipe(**kwargs)
-        image = result.images[0]
-
-        del pipe
-        del result
-        torch.cuda.empty_cache()
-        torch.cuda.synchronize()
-        return image
-
     def _generate_character_sheet(self, job_id: str, asset: dict, year_hint: str, assets_dir: Path) -> dict:
         asset_id = asset["asset_id"]
         name = asset.get("name", asset_id)
         description = asset.get("visual_description", asset.get("description", ""))
         full_prompt = asset.get("full_prompt", "").strip()
 
-        base_prompt = full_prompt or f"{year_hint}, realistic full color portrait photograph, {description}"
-        angles = {
-            "base": base_prompt,
-            "left_angle": f"{base_prompt}, facing left, left profile view, neutral gray background",
-            "right_angle": f"{base_prompt}, facing right, right profile view, neutral gray background",
-            "full_body": f"{base_prompt}, full body shot, standing, neutral background, from distance",
-        }
+        sheet_images = super().generate_character_sheet(asset_id, name, description, year_hint, full_prompt)
 
         results = {}
-        for angle_name, prompt in angles.items():
-            self.logger.info(f"{job_id}: Generating {angle_name} for '{asset_id}': {prompt[:60]}...")
-            try:
-                image = self._generate_image(prompt)
-                if image:
-                    filename = f"{asset_id}_{angle_name}.png"
-                    gen_path = assets_dir / "characters" / "gen" / filename
-                    image.save(gen_path)
-                    results[angle_name] = str(filename)
-                    self.logger.info(f"{job_id}: Saved {angle_name}: {gen_path}")
-            except Exception as e:
-                self.logger.error(f"{job_id}: Failed to generate {angle_name} for {asset_id}: {e}")
+        for angle_name, image in sheet_images.items():
+            filename = f"{asset_id}_{angle_name}.png"
+            gen_path = assets_dir / "characters" / "gen" / filename
+            image.save(gen_path)
+            results[angle_name] = str(filename)
+            self.logger.info(f"{job_id}: Saved {angle_name}: {gen_path}")
 
         return results
-
-    def _montage_text_label(self, image: Image.Image, output_path: Path, label: str) -> None:
-        import subprocess
-
-        label_clean = label.strip()
-        temp_path = output_path.with_suffix(".tmp.png")
-        image.save(temp_path)
-
-        cmd = [
-            "convert",
-            "-size", f"{image.width}x50",
-            "-background", "black",
-            "-fill", "white",
-            "-font", "DejaVu-Sans",
-            "-pointsize", "28",
-            "-gravity", "center",
-            f"label:{label_clean}",
-            temp_path,
-            "-append",
-            str(output_path)
-        ]
-        try:
-            subprocess.run(cmd, check=True, capture_output=True)
-            temp_path.unlink()
-        except subprocess.CalledProcessError as e:
-            self.logger.warning(f"ImageMagick montage failed: {e}")
-            if temp_path.exists():
-                temp_path.rename(output_path)
-
-    def _composite_scene_image(self, job_dir: Path, package: dict, assets: list[dict]) -> Path | None:
-        try:
-            from PIL import Image, ImageDraw, ImageFont
-
-            assets_in_shot = package.get("assets", [])
-            self.logger.info(f"=== COMPOSITE START. Assets in shot: {len(assets_in_shot)}, job_dir: {job_dir}")
-
-            if not assets_in_shot:
-                self.logger.warning("No assets_in_shot")
-                return None
-
-            composite_prompt = package.get("composite_prompt", "")
-            self.logger.info(f"Composite prompt: {composite_prompt[:100]}")
-            bg_height = 300
-            char_height = 150
-            obj_height = 100
-            caption_height = 40
-            total_width = 1024
-            label_height = 50
-
-            total_height = bg_height + char_height + obj_height + caption_height + label_height
-            composite = Image.new("RGB", (total_width, total_height), color="black")
-            draw = ImageDraw.Draw(composite)
-
-            current_y = 0
-
-            captions_used = []
-            
-            bg_info = None
-            chars_objs = []
-            
-            for asset_ref in assets_in_shot:
-                if asset_ref.get("role") == "background":
-                    for asset in assets:
-                        if asset["asset_id"] == asset_ref["asset_id"]:
-                            name = asset.get("name", "background")
-                            desc = asset.get("visual_description", "")
-                            bg_info = f"{name}: {desc}" if desc else name
-                            break
-                else:
-                    for asset in assets:
-                        if asset["asset_id"] == asset_ref["asset_id"]:
-                            role = asset_ref.get("role", "")
-                            name = asset.get("name", "object")
-                            desc = asset.get("visual_description", "")
-                            chars_objs.append((role, f"{name} - {desc}" if desc else name))
-                            break
-            
-            flux_parts = []
-            if bg_info:
-                flux_parts.append(f"Background: {bg_info}")
-            for role, name in chars_objs:
-                flux_parts.append(f"{name}")
-            
-            auto_composite_prompt = ", ".join(flux_parts)
-            
-            package["composite_prompt"] = package.get("composite_prompt") or auto_composite_prompt
-
-            for asset_ref in assets_in_shot:
-                if asset_ref.get("role") == "background":
-                    asset_id = asset_ref["asset_id"]
-                    for asset in assets:
-                        if asset["asset_id"] == asset_id:
-                            img = self._load_asset_image(job_dir, asset, "background")
-                            if img:
-                                img = img.resize((total_width, bg_height), Image.Resampling.LANCZOS)
-                                composite.paste(img, (0, current_y))
-                                current_y += bg_height
-                                cap = asset.get("name", "")
-                                if cap:
-                                    captions_used.append(f"[{cap}]")
-                            break
-
-            for asset_ref in assets_in_shot:
-                if asset_ref.get("role") in ("object", "primary_character", "secondary_character"):
-                    asset_id = asset_ref["asset_id"]
-                    asset_type = "object" if asset_ref.get("role") == "object" else "character"
-                    for asset in assets:
-                        if asset["asset_id"] == asset_id:
-                            img = self._load_asset_image(job_dir, asset, asset_type)
-                            if img:
-                                target_h = char_height if asset_type == "character" else obj_height
-                                ratio = target_h / img.height
-                                new_w = int(img.width * ratio)
-                                img = img.resize((new_w, target_h), Image.Resampling.LANCZOS)
-                                x_offset = (total_width - img.width) // 2
-                                composite.paste(img, (x_offset, current_y))
-                                current_y += target_h
-                                cap = asset.get("name", "")
-                                if cap:
-                                    captions_used.append(f"[{cap}]")
-                            break
-
-            try:
-                font = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", 28)
-            except:
-                font = ImageFont.load_default()
-
-            caption_text = " ".join(captions_used) if captions_used else f"Shot {package['shot_id']}"
-            caption_text = f"[ {caption_text} ]"
-
-            draw.rectangle([(0, current_y), (total_width, current_y + caption_height)], fill="black")
-            bbox = draw.textbbox((0, 0), caption_text, font=font)
-            text_w = bbox[2] - bbox[0]
-            text_h = bbox[3] - bbox[1]
-            text_x = (total_width - text_w) // 2
-            text_y = current_y + (caption_height - text_h) // 2
-            draw.text((text_x, text_y), caption_text, fill="white", font=font)
-            current_y += caption_height
-
-            if composite_prompt:
-                draw.rectangle([(0, current_y), (total_width, current_y + label_height)], fill="#1a1a1a")
-                small_font = ImageFont.load_default()
-                words = composite_prompt.split()
-                lines = []
-                current_line = ""
-                for word in words:
-                    test_line = current_line + " " + word if current_line else word
-                    if draw.textlength(test_line, font=small_font) < total_width - 20:
-                        current_line = test_line
-                    else:
-                        if current_line:
-                            lines.append(current_line)
-                        current_line = word
-                if current_line:
-                    lines.append(current_line)
-
-                for i, line in enumerate(lines[:2]):
-                    draw.text((10, current_y + i * 16), line, fill="#aaa", font=small_font)
-                current_y += label_height
-
-            # Don't add text labels - FLUX will generate clean composite
-            # label_text intentionally removed
-
-            renders_dir = job_dir / "renders"
-            renders_dir.mkdir(parents=True, exist_ok=True)
-
-            self.logger.info("Generating composite with FLUX using reference...")
-            result = self._generate_image(composite_prompt, ref_image=composite)
-            output_path = renders_dir / f"shot_{package['shot_id']}_keyframe.png"
-            if result:
-                result.save(output_path)
-                self.logger.info(f"Saved FLUX composite: {output_path}")
-            else:
-                composite.save(output_path)
-                self.logger.info(f"Saved collage fallback: {output_path}")
-            return output_path
-
-        except Exception as e:
-            self.logger.warning(f"Composite image failed: {e}")
-            return None
-
-    def _load_asset_image(self, job_dir: Path, asset: dict, asset_type: str) -> Image.Image | None:
-        asset_id = asset["asset_id"]
-        subdir = asset_type + "s"
-        gen_path = job_dir / "assets" / subdir / "gen" / f"{asset_id}.png"
-        web_path = job_dir / "assets" / subdir / "web" / f"{asset_id}.png"
-
-        if asset.get("has_gen") and gen_path.exists():
-            return Image.open(gen_path).convert("RGB")
-        elif asset.get("has_web") and web_path.exists():
-            return Image.open(web_path).convert("RGB")
-        return None
 
     def _derive_style_directive(self, context: str) -> str:
         if not context:
@@ -1069,7 +833,7 @@ IMPORTANT: Output ONLY a valid JSON array, nothing else."""
                     "status": "pending"
                 }
 
-                composite_path = self._composite_scene_image(job_dir, package, assets)
+                composite_path = self.composite_scene_image(job_dir, package, assets)
                 if composite_path:
                     package["keyframe_image"] = str(composite_path.relative_to(job_dir))
 
