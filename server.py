@@ -633,6 +633,8 @@ async def regenerate_asset_now(job_id: str, asset_id: str):
 
     logger.info(f"Generating {asset_id} ({asset_type})")
 
+    enqueue_task(job_id, asset_id, f"regen_{asset_type}")
+
     try:
         if asset_type == "character":
             current_version = asset.get("current_version", 1)
