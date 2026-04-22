@@ -58,7 +58,7 @@ def get_redis():
 
 
 def enqueue_task(job_id: str, asset_id: str, task_type: str):
-    """Add task to Redis queue."""
+    """Add task to Redis queue and publish to subscribers."""
     r = get_redis()
     if not r:
         return
@@ -72,7 +72,7 @@ def enqueue_task(job_id: str, asset_id: str, task_type: str):
         "job_id": job_id,
         "asset_id": asset_id
     })
-    r.lpush("queue:todo", task_key)
+    r.publish("queue:new_task", task_key)
     logger.info(f"Enqueued {task_key}")
 
 

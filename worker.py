@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Worker that polls Redis queue and processes generation tasks."""
+"""Worker that subscribes to Redis pub/sub for task notifications."""
 
 import json
 import os
@@ -16,25 +16,26 @@ REDIS_URL = os.environ.get("REDIS_URL", "redis://localhost:6379")
 
 def main():
     r = redis.from_url(REDIS_URL)
-    print(f"Worker started, polling Redis at {REDIS_URL}")
+    pubsub = r.pubsub()
+    pubsub.psubscribe("queue:new_task")
+    print(f"Worker started, subscribed to queue:new_task")
 
-    while True:
-        task_key = r.brpoplpush("queue:todo", "queue:processing", timeout=10)
-        if not task_key:
+    for message in pubsub.listen():
+        if message["type"] != "pmessage":
             continue
 
-        print(f"Processing {task_key}")
+        task_key = message["data"].decode()
+        print(f"Received task: {task_key}")
 
         task = r.hgetall(task_key)
         if not task:
-            r.lrem("queue:processing", 0, task_key)
             continue
 
         job_id = task.get(b"job_id", b"").decode()
         asset_id = task.get(b"asset_id", b"").decode()
-        task_type = task.get(b"task_type", b"").decode()
 
         r.hset(task_key, "started_at", datetime.utcnow().isoformat())
+        r.hset(task_key, "state", "processing")
 
         try:
             from vplib import VPLib
@@ -120,7 +121,6 @@ def main():
 
                 asset["current_version"] = new_version
                 asset["has_gen"] = True
-                asset["source"] = "generated"
 
             with open(manifest_path, "w") as f:
                 json.dump(assets, f, indent=2)
@@ -133,9 +133,6 @@ def main():
             print(f"Error {task_key}: {e}")
             r.hset(task_key, "state", "failed")
             r.hset(task_key, "error", str(e))
-
-        finally:
-            r.lrem("queue:processing", 0, task_key)
 
 
 if __name__ == "__main__":
