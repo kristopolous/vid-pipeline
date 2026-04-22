@@ -368,8 +368,11 @@ Format: One per line as "name is description"
 Focus on: indoor/outdoor settings, specific locations mentioned, environments where actions occur."""
 
         backgrounds_text = self._llm_call(system_prompt, self.scene)
+        self.logger.info(f"{job_id}: First pass backgrounds:\n{backgrounds_text}")
+
+        backgrounds_text = self._clean_backgrounds(backgrounds_text)
         (job_dir / "backgrounds.txt").write_text(backgrounds_text)
-        self.logger.info(f"{job_id}: Deduced backgrounds:\n{backgrounds_text}")
+        self.logger.info(f"{job_id}: Cleaned backgrounds:\n{backgrounds_text}")
 
         for line in backgrounds_text.splitlines():
             line = line.strip()
@@ -377,6 +380,28 @@ Focus on: indoor/outdoor settings, specific locations mentioned, environments wh
                 bg = self._parse_background_line(line)
                 if bg:
                     self.backgrounds.append(bg)
+
+    def _clean_backgrounds(self, backgrounds_text: str) -> str:
+        if not backgrounds_text.strip():
+            return backgrounds_text
+
+        cleanup_prompt = f"""Take each background description and make it suitable for a background image.
+Remove any objects, items, people, or things that would appear in the foreground.
+Keep only the empty setting description - the location, atmosphere, lighting, and mood.
+Do NOT include any objects or items in the description.
+
+For example:
+- "bustling indoor shopping mall with people" -> "empty indoor shopping mall with warm lighting"
+- "cargo area of a car with computer" -> "empty car cargo area with soft lighting"
+- "office with computer on desk" -> "empty office with neutral lighting"
+
+Original backgrounds:
+{backgrounds_text}
+
+Cleaned backgrounds (one per line):"""
+
+        cleaned = self._llm_call(cleanup_prompt, "")
+        return cleaned if cleaned.strip() else backgrounds_text
 
     def _save_asset_manifest(self, job_id: str) -> None:
         job_dir = Path(f"pipeline/{job_id}")
