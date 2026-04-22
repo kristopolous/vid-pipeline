@@ -165,6 +165,9 @@
             hideError();
             try {
                 currentJob = await api(`/jobs/${jobId}`);
+                if (currentJob && currentJob.job_id) {
+                    history.replaceState(null, '', `#${currentJob.job_id}/${currentTab || 'script'}`);
+                }
                 renderAll();
             } catch (e) {
                 showError(e.message);
