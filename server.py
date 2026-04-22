@@ -40,6 +40,41 @@ logging.basicConfig(
 )
 logger = logging.getLogger("server")
 
+REDIS_URL = os.environ.get("REDIS_URL", "redis://localhost:6379")
+_queue_redis = None
+
+
+def get_redis():
+    global _queue_redis
+    if _queue_redis is None:
+        try:
+            import redis
+            _queue_redis = redis.from_url(REDIS_URL)
+            _queue_redis.ping()
+        except Exception as e:
+            logger.warning(f"Redis not available: {e}")
+            _queue_redis = False
+    return _queue_redis if _queue_redis else None
+
+
+def enqueue_task(job_id: str, asset_id: str, task_type: str):
+    """Add task to Redis queue."""
+    r = get_redis()
+    if not r:
+        return
+
+    from datetime import datetime
+    task_key = f"task:{job_id}:{asset_id}"
+    r.hset(task_key, mapping={
+        "state": "todo",
+        "task_type": task_type,
+        "created_at": datetime.utcnow().isoformat(),
+        "job_id": job_id,
+        "asset_id": asset_id
+    })
+    r.lpush("queue:todo", task_key)
+    logger.info(f"Enqueued {task_key}")
+
 
 def add_text_label(input_path: Path, output_path: Path, label: str) -> None:
     """Add label above image using ImageMagick."""
@@ -714,7 +749,29 @@ async def regenerate_asset_now(job_id: str, asset_id: str):
     with open(manifest_path, "w") as f:
         json.dump(assets, f, indent=2)
 
-    return {"status": "ok", "asset_id": asset_id, "generated": asset.get("has_gen", False)}
+    return {"status": "ok", "asset_id": asset_id, "generated": asset.get("has_gen", False), "message": "Task enqueued"}
+
+
+@app.get("/api/queue/status")
+async def get_queue_status():
+    """Get current queue status."""
+    r = get_redis()
+    if not r:
+        return {"queue": [], "error": "Redis not available"}
+
+    jobs = []
+    for key in r.lrange("queue:todo", 0, -1):
+        data = r.hgetall(key)
+        if data:
+            jobs.append(dict(data))
+
+    processing = []
+    for key in r.lrange("queue:processing", 0, -1):
+        data = r.hgetall(key)
+        if data:
+            processing.append(dict(data))
+
+    return {"todo": jobs, "processing": processing}
 
 
 @app.post("/api/jobs/{job_id}/assets/{asset_id}/upload")
