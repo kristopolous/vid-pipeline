@@ -344,6 +344,34 @@ async def submit_job(request: SubmitJobRequest):
         if temp_path.exists():
             temp_path.unlink()
 
+    # Auto-queue regeneration tasks for assets that need it
+    try:
+        asset_manifest_path = job_dir / "asset_manifest.json"
+        if asset_manifest_path.exists():
+            with open(asset_manifest_path) as f:
+                asset_manifest = json.load(f)
+            for asset in asset_manifest:
+                if asset.get("needs_regen", False):
+                    asset_type = asset.get("type", "")
+                    if asset_type in ["character", "object", "background"]:
+                        subdir = asset_type + "s"
+                        name = asset.get("name", asset["asset_id"]).lower().replace(" ", "_")
+                        current_version = asset.get("current_version", 1)
+                        if asset_type == "character":
+                            version_dir = job_dir / "assets" / "characters" / name / f"v{current_version}"
+                        elif asset_type == "background":
+                            version_dir = job_dir / "assets" / "backgrounds" / name / f"v{current_version}"
+                        else:
+                            version_dir = job_dir / "assets" / "objects" / name / f"v{current_version}"
+                        
+                        image_file = "headshot.png" if asset_type == "character" else "image.png"
+                        image_path = version_dir / image_file
+                        if not image_path.exists():
+                            enqueue_task(job_id, asset["asset_id"], f"regen_{asset_type}")
+                            logger.info(f"Auto-queued regeneration for {asset['asset_id']} ({asset_type})")
+    except Exception as e:
+        logger.warning(f"Failed to auto-queue regeneration tasks: {e}")
+
     return {"job_id": job_id}
 
 

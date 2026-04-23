@@ -1,7 +1,10 @@
 #!/usr/bin/env python3
 """VPLib - Shared video pipeline generation library."""
 
+import io
 import logging
+import os
+import requests
 import subprocess
 from pathlib import Path
 from typing import TYPE_CHECKING
@@ -18,37 +21,141 @@ class VPLib:
         self.logger = logging.getLogger("vplib")
 
     def generate_image(self, prompt: str, ref_image: "Image.Image | None" = None) -> "Image.Image | None":
-        from diffusers.pipelines.flux2.pipeline_flux2_klein import Flux2KleinPipeline
+        """Generate an image - tries multiple backends in order."""
+        
+        # Try Flux pipeline for actual generation
+        try:
+            return self._generate_flux_image(prompt, ref_image)
+        except Exception as e:
+            self.logger.warning(f"Flux generation failed: {e}")
+        
+        # Try remote API  
+        wan2gp_url = self.config.get("wan2gp", {}).get("url") or self.config.get("url")
+        if wan2gp_url:
+            img = self._generate_remote_image(prompt, ref_image)
+            if img:
+                return img
+        
+        # Final fallback: web search
+        self.logger.info(f"Trying web search fallback for: {prompt[:50]}")
+        return self.generate_image_fallback(prompt)
+    
+    def _generate_flux_image(self, prompt: str, ref_image: "Image.Image | None" = None) -> "Image.Image | None":
+        """Use local Flux pipeline for image generation."""
         import torch
-
-        pipe = Flux2KleinPipeline.from_pretrained(
-            "black-forest-labs/FLUX.2-klein-9B",
-            torch_dtype=torch.bfloat16,
-        )
-        pipe.enable_model_cpu_offload()
-
-        self.logger.info(f"FLUX: {prompt[:80]}")
+        from diffusers import FluxPipeline, FluxImg2ImgPipeline
+        
+        # Check if we have a ref image (for img2img)
         if ref_image:
-            self.logger.info(f"Ref image: {ref_image.size}")
-            ref_image = ref_image.resize((512, 512))
-
-        kwargs = {
+            self.logger.info(f"Flux img2img: {prompt[:60]}...")
+            # Load img2img pipeline
+            pipe = FluxImg2ImgPipeline.from_pretrained(
+                "black-forest-labs/FLUX.1-dev",
+                torch_dtype=torch.bfloat16,
+            )
+            pipe.enable_model_cpu_offload()
+            
+            # Resize ref to 512x512
+            ref = ref_image.resize((512, 512))
+            
+            result = pipe(
+                prompt=prompt,
+                image=ref,
+                num_inference_steps=4,
+                strength=0.8,  # Keep identity but change pose
+            )
+            image = result.images[0]
+        else:
+            self.logger.info(f"Flux txt2img: {prompt[:60]}...")
+            pipe = FluxPipeline.from_pretrained(
+                "black-forest-labs/FLUX.1-dev",
+                torch_dtype=torch.bfloat16,
+            )
+            pipe.enable_model_cpu_offload()
+            
+            result = pipe(
+                prompt=prompt,
+                height=512,
+                width=512,
+                num_inference_steps=4,
+            )
+            image = result.images[0]
+        
+        del pipe
+        torch.cuda.empty_cache()
+        return image
+    
+    def _generate_remote_image(self, prompt: str, ref_image: "Image.Image | None" = None) -> "Image.Image | None":
+        """Use remote wan2gp API for image generation."""
+        import requests
+        
+        wan2gp_url = self.config.get("wan2gp", {}).get("url")
+        if not wan2gp_url:
+            return None
+        
+        api_url = f"{wan2gp_url}/v1/image/generate"
+        headers = {"Content-Type": "application/json"}
+        
+        payload = {
             "prompt": prompt,
-            "height": 512,
-            "width": 512,
+            "model": self.config.get("wan2gp", {}).get("image", "flux-2"),
             "num_inference_steps": 4,
         }
-        if ref_image:
-            kwargs["image"] = ref_image
-
-        result = pipe(**kwargs)
-        image = result.images[0]
-
-        del pipe
-        del result
-        torch.cuda.empty_cache()
-        torch.cuda.synchronize()
-        return image
+        
+        try:
+            response = requests.post(api_url, json=payload, headers=headers, timeout=60)
+            if response.status_code == 200:
+                from PIL import Image
+                import numpy as np
+                data = response.json()
+                image_data = data.get("image")
+                if image_data:
+                    # Could be base64 encoded
+                    import base64
+                    img_bytes = base64.b64decode(image_data)
+                    return Image.open(io.BytesIO(img_bytes)).convert("RGB")
+        except Exception as e:
+            self.logger.error(f"Remote image generation failed: {e}")
+        return None
+    
+    def generate_image_fallback(self, prompt: str) -> "Image.Image | None":
+        """Fallback: use Brave web search to get an image."""
+        
+        api_key = self.config.get("brave-api-key")
+        if not api_key:
+            self.logger.warning("No Brave API key configured")
+            return None
+        
+        # Search for an image matching the prompt
+        params = {"q": prompt, "count": 1}
+        headers = {"X-Subscription-Token": api_key, "Accept": "application/json"}
+        
+        try:
+            response = requests.get(
+                "https://api.search.brave.com/res/v1/images/search",
+                headers=headers,
+                params=params,
+                timeout=15,
+            )
+            if response.status_code == 200:
+                data = response.json()
+                results = data.get("results", [])
+                if results:
+                    thumb = results[0].get("thumbnail", {})
+                    image_url = thumb.get("src") if isinstance(thumb, dict) else None
+                    if not image_url:
+                        image_url = results[0].get("url")
+                    
+                    # Download the image
+                    img_response = requests.get(image_url, timeout=15)
+                    if img_response.status_code == 200:
+                        from PIL import Image
+                        img = Image.open(io.BytesIO(img_response.content)).convert("RGB")
+                        self.logger.info(f"Web search found image for: {prompt[:50]}")
+                        return img
+        except Exception as e:
+            self.logger.warning(f"Web search failed: {e}")
+        return None
 
     def generate_character_sheet(
             self,
