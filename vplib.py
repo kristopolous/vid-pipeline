@@ -41,49 +41,30 @@ class VPLib:
         return self.generate_image_fallback(prompt)
     
     def _generate_flux_image(self, prompt: str, ref_image: "Image.Image | None" = None) -> "Image.Image | None":
-        """Use local Flux pipeline for image generation."""
+        """Use local Flux2Klein pipeline for image generation."""
         import torch
-        from diffusers import FluxPipeline, FluxImg2ImgPipeline
+        from diffusers.pipelines import Flux2KleinPipeline
         
-        # Check if we have a ref image (for img2img)
+        self.logger.info(f"Flux2Klein: {prompt[:60]}...")
+        
+        if not hasattr(self, "_flux_pipe"):
+            self._flux_pipe = Flux2KleinPipeline.from_pretrained(
+                "black-forest-labs/FLUX.2-klein-9B",
+                torch_dtype=torch.bfloat16,
+            )
+            self._flux_pipe.enable_model_cpu_offload()
+        
+        kwargs = {
+            "prompt": prompt,
+            "num_inference_steps": 4,
+        }
+        
         if ref_image:
-            self.logger.info(f"Flux img2img: {prompt[:60]}...")
-            # Load img2img pipeline
-            pipe = FluxImg2ImgPipeline.from_pretrained(
-                "black-forest-labs/FLUX.1-dev",
-                torch_dtype=torch.bfloat16,
-            )
-            pipe.enable_model_cpu_offload()
-            
-            # Resize ref to 512x512
             ref = ref_image.resize((512, 512))
-            
-            result = pipe(
-                prompt=prompt,
-                image=ref,
-                num_inference_steps=4,
-                strength=0.8,  # Keep identity but change pose
-            )
-            image = result.images[0]
-        else:
-            self.logger.info(f"Flux txt2img: {prompt[:60]}...")
-            pipe = FluxPipeline.from_pretrained(
-                "black-forest-labs/FLUX.1-dev",
-                torch_dtype=torch.bfloat16,
-            )
-            pipe.enable_model_cpu_offload()
-            
-            result = pipe(
-                prompt=prompt,
-                height=512,
-                width=512,
-                num_inference_steps=4,
-            )
-            image = result.images[0]
+            kwargs["image"] = ref
         
-        del pipe
-        torch.cuda.empty_cache()
-        return image
+        result = self._flux_pipe(**kwargs)
+        return result.images[0]
     
     def _generate_remote_image(self, prompt: str, ref_image: "Image.Image | None" = None) -> "Image.Image | None":
         """Use remote wan2gp API for image generation."""
@@ -411,7 +392,7 @@ class VPLib:
                 "Lightricks/LTX-2",
                 torch_dtype=torch.bfloat16,
             )
-            pipeline.enable_model_cpu_offload()
+            pipeline.enable_sequential_cpu_offload()
             pipeline.enable_vae_spatial_tiling()
 
             self.logger.info(f"Rendering: {num_frames} frames, {width}x{height}")

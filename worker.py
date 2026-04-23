@@ -66,7 +66,7 @@ def process_character(job_dir: Path, asset: dict, vplib) -> dict:
     
     if headshot:
         headshot.save(version_dir / "headshot.png")
-        source = "generated" if not vplib.config.get("brave-api-key") else "mixed"
+        source = "flux2-klein-9B"
     else:
         logger.error(f"[{asset_id}] Could not generate headshot at all!")
         return None
