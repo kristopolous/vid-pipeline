@@ -4,11 +4,11 @@
         "url": "http://localhost:11434",
         "key": null
     },
-    "brave-api-key": ...,
+    "brave-api-key": "your-brave-search-api-key",
     "wan2gp": {
         "url": "",
         "video": "minimax-h3",
-        "audio": "minimax-h3",
+        "audio": "ltx-2",
         "edit": "flux-2",
         "image": "flux-2"
     },

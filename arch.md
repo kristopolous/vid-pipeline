@@ -18,7 +18,7 @@ There's a config.json with the following:
     }
     "wan2gp": {
         "url": "url of wan2gp to send jobs to"
-        "video": "preferred video model, defaults to ltx-2",
+        "video": "preferred video model, defaults to ltx-2; set to minimax-h3 to render quantized MiniMax-H3 via ComfyUI",
         "audio": "preferred audio model, defaults to ltx-2",
         "edit": "defaults to flux-2",
         "image": "defaults to flux-2"
