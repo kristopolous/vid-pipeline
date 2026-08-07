@@ -77,6 +77,16 @@ class Pipeline(VPLib):
                 "audio": "ltx-2",
                 "edit": "flux-2",
                 "image": "flux-2"
+            },
+            "comfyui": {
+                "url": "",
+                "unet": "MiniMax-H3-FL2VA-Q4_K_M.gguf",
+                "text_encoder": "qwen3vl_32b_minimax_h3-Q4_K_M.gguf",
+                "video_vae": "minimax_h3_video_vae_fp16.safetensors",
+                "audio_vae": "minimax_h3_audio_vae_fp32.safetensors",
+                "steps": 25,
+                "scheduler": "simple",
+                "sampler": "res_multistep"
             }
         }
         

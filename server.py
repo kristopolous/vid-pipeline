@@ -117,6 +117,7 @@ def load_config():
         
         wan2gp_cfg = WAN2GP_CONFIG.get("wan2gp", {})
         WAN2GP_URL = wan2gp_cfg.get("url")
+        vplib.config = WAN2GP_CONFIG
         
         if WAN2GP_URL:
             logger.info(f"Using Wan2GP at: {WAN2GP_URL}")
@@ -135,10 +136,21 @@ def load_config():
                 "audio": "ltx-2",
                 "edit": "flux-2",
                 "image": "flux-2"
+            },
+            "comfyui": {
+                "url": "",
+                "unet": "MiniMax-H3-FL2VA-Q4_K_M.gguf",
+                "text_encoder": "qwen3vl_32b_minimax_h3-Q4_K_M.gguf",
+                "video_vae": "minimax_h3_video_vae_fp16.safetensors",
+                "audio_vae": "minimax_h3_audio_vae_fp32.safetensors",
+                "steps": 25,
+                "scheduler": "simple",
+                "sampler": "res_multistep"
             }
         }
         with open(CONFIG_PATH, "w") as f:
             json.dump(WAN2GP_CONFIG, f, indent=4)
+        vplib.config = WAN2GP_CONFIG
         logger.info(f"Config file not found - created default at {CONFIG_PATH}")
         logger.info("Please edit config.json to set your wan2gp.url and other settings")
 
@@ -440,20 +452,41 @@ async def render_scene(request: RenderRequest):
             num_frames = duration * 24
             negative = package.get("harness", {}).get("negative_prompt", "anime, cartoon, low quality, distorted")
 
-            logger.info(f"Rendering shot {package['shot_id']} with LTX-2: {num_frames} frames, {resolution}")
+            video_backend = WAN2GP_CONFIG.get("wan2gp", {}).get("video", "ltx-2")
+            logger.info(f"Rendering shot {package['shot_id']} with {video_backend}: {num_frames} frames, {resolution}")
 
-            frames = vplib.render_video(
+            renders_dir = job_dir / "renders"
+            renders_dir.mkdir(parents=True, exist_ok=True)
+            final_path = renders_dir / f"{package['shot_id']}_take_{retry_count + 1}.mp4"
+
+            first_frame = None
+            keyframe_image = package.get("keyframe_image")
+            if keyframe_image:
+                kf_path = job_dir / keyframe_image
+                if kf_path.exists():
+                    first_frame = kf_path
+
+            result = vplib.render_video(
                 prompt=prompt,
                 negative_prompt=negative,
                 width=width,
                 height=height,
                 num_frames=num_frames,
+                output_path=final_path,
+                first_frame=first_frame,
             )
 
-            if frames:
-                renders_dir = job_dir / "renders"
-                renders_dir.mkdir(parents=True, exist_ok=True)
-                final_path = renders_dir / f"{package['shot_id']}_take_{retry_count + 1}.mp4"
+            if isinstance(result, (str, os.PathLike)):
+                # ComfyUI / MiniMax-H3 path: finished mp4 (with native audio).
+                result_path = Path(result)
+                if result_path != final_path:
+                    import shutil
+                    shutil.copy2(result_path, final_path)
+                package["status"] = "rendered"
+                package["rendered_file"] = str(final_path)
+                package["last_error"] = None
+            elif result:
+                frames = result
 
                 import numpy as np
                 import tempfile
@@ -1103,6 +1136,7 @@ async def update_config(request: dict):
     WAN2GP_CONFIG = request
     wan2gp_cfg = WAN2GP_CONFIG.get("wan2gp", {})
     WAN2GP_URL = wan2gp_cfg.get("url")
+    vplib.config = WAN2GP_CONFIG
     with open(CONFIG_PATH, "w") as f:
         json.dump(WAN2GP_CONFIG, f, indent=4)
     logger.info(f"Config updated. Wan2GP URL: {WAN2GP_URL}")

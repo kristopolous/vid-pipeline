@@ -1,11 +1,13 @@
 # Video Harness Pipeline
 
-Converts prose into structured scene packages for video generation using LTX-2 and FLUX.2-klein-9B.
+Converts prose into structured scene packages for video generation using LTX-2, MiniMax-H3, and FLUX.2-klein-9B.
 
 ## Dependencies
 
 - **FLUX.2-klein-9B** (image generation): Accept license at https://huggingface.co/black-forest-labs/FLUX.2-klein-9B
 - **LTX-2** (video generation): https://huggingface.co/Lightricks/LTX-2
+- **MiniMax-H3** (video generation, quantized): https://huggingface.co/Abiray/MiniMax-H3-GGUF (rendered via ComfyUI)
+- **ComfyUI** (v0.30.0+): https://github.com/Comfy-Org/ComfyUI
 - **HuggingFace CLI**: `hf auth login`
 - **Brave Search API** (object images): https://brave.com/search/api/
 
@@ -27,13 +29,57 @@ Edit `config.json`:
         "edit": "flux-2",
         "image": "flux-2"
     },
+    "comfyui": {
+        "url": "http://127.0.0.1:8188",
+        "unet": "MiniMax-H3-FL2VA-Q4_K_M.gguf",
+        "text_encoder": "qwen3vl_32b_minimax_h3-Q4_K_M.gguf",
+        "video_vae": "minimax_h3_video_vae_fp16.safetensors",
+        "audio_vae": "minimax_h3_audio_vae_fp32.safetensors",
+        "steps": 25,
+        "scheduler": "simple",
+        "sampler": "res_multistep"
+    },
     "brave-api-key": "your-brave-search-api-key"
 }
 ```
 
 - `text`: LLM endpoint for script processing (ollama, llama.cpp, openai compatible)
 - `wan2gp`: Remote video generation API (optional)
+- `wan2gp.video`: Video backend — `"ltx-2"` (diffusers, default) or `"minimax-h3"` (ComfyUI)
+- `comfyui`: Settings for the quantized MiniMax-H3 backend
 - `brave-api-key`: For web image search
+
+## Video Backends
+
+### LTX-2 (default)
+
+Rendered locally with diffusers (`LTXVideoPipeline`). No extra services needed.
+
+### MiniMax-H3 (quantized, via ComfyUI)
+
+Set `wan2gp.video` to `"minimax-h3"` to render with the quantized MiniMax-H3
+GGUF checkpoints. This backend produces video with **native stereo audio**
+(dialogue, SFX, music) and uses the scene's composite keyframe as the first
+frame for continuity.
+
+Setup:
+
+1. Install ComfyUI v0.30.0+ and the [ComfyUI-GGUF](https://github.com/city96/ComfyUI-GGUF)
+   custom node (required for `.gguf` checkpoints).
+2. Download the quantized files into `ComfyUI/models/`:
+   - `diffusion_models/`: `MiniMax-H3-FL2VA-Q4_K_M.gguf` (from `unet/`)
+   - `text_encoders/`: `qwen3vl_32b_minimax_h3-Q4_K_M.gguf` (from `text_encoders/`)
+   - `vae/`: `minimax_h3_video_vae_fp16.safetensors` and `minimax_h3_audio_vae_fp32.safetensors` (from `vae/`)
+3. Start ComfyUI (`--listen`) and point `comfyui.url` at it.
+4. Load the official MiniMax H3 T2V template once to confirm it runs before using the pipeline.
+
+Notes:
+- The `.gguf`/`.safetensors` choice is detected by file extension; safetensors
+  checkpoints from [Comfy-Org/MiniMax-H3](https://huggingface.co/Comfy-Org/MiniMax-H3)
+  work without ComfyUI-GGUF.
+- Frame counts snap to MiniMax-H3's `17k+5` grid (min ~5s at 24fps).
+- The `audio` config key still controls the Wan2GP audio model; MiniMax-H3
+  always generates its own synced audio.
 
 ## Usage
 

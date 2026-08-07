@@ -25,6 +25,7 @@ class RenderLoop:
         wan2gp_cfg = self.config.get("wan2gp", {})
         self.wan2gp_path = Path(wan2gp_cfg.get("path", 
                                  Path(__file__).parent.parent / "Wan2GP"))
+        self.video_backend = wan2gp_cfg.get("video", "ltx-2")
         self.video_model = wan2gp_cfg.get("video_model", "ltx2_22B_distilled")
         self.image_model = wan2gp_cfg.get("image_model", "flux2_klein_9b")
         self.edit_model = wan2gp_cfg.get("edit_model", "flux2_klein_9b")
@@ -58,6 +59,11 @@ class RenderLoop:
 
         retry_count = package.get("retry_count", 0)
         current_take = retry_count + 1
+
+        if self.video_backend in ("minimax-h3", "minimax_h3", "minimax"):
+            return self._render_scene_comfyui(
+                scene_package_path, package, retry_count, current_take, max_retries
+            )
 
         session = self.init_session()
 
@@ -115,6 +121,75 @@ class RenderLoop:
                     package["status"] = "failed"
                     package["last_error"] = "; ".join(errors)
 
+        except Exception as e:
+            self.logger.error(f"Render exception: {e}")
+            if retry_count < max_retries:
+                package["retry_count"] = retry_count + 1
+                package["status"] = "pending"
+                package["last_error"] = str(e)
+            else:
+                package["status"] = "failed"
+                package["last_error"] = str(e)
+
+        with open(scene_package_path, "w") as f:
+            json.dump(package, f, indent=2)
+
+        return package
+
+    def _render_scene_comfyui(
+            self,
+            scene_package_path: Path,
+            package: dict[str, Any],
+            retry_count: int,
+            current_take: int,
+            max_retries: int,
+    ) -> dict[str, Any]:
+        """Render a scene package via ComfyUI (quantized MiniMax-H3 backend)."""
+        from vplib import VPLib
+
+        job_dir = scene_package_path.parent.parent
+        renders_dir = job_dir / "renders"
+        renders_dir.mkdir(parents=True, exist_ok=True)
+        final_path = renders_dir / f"{package['shot_id']}_take_{current_take}.mp4"
+
+        resolution = package.get("resolution", "1280x704")
+        width, height = map(int, resolution.split("x"))
+        duration = int(package.get("duration_seconds", 4))
+        num_frames = duration * 24
+
+        first_frame = None
+        keyframe_image = package.get("keyframe_image")
+        if keyframe_image:
+            kf_path = job_dir / keyframe_image
+            if kf_path.exists():
+                first_frame = kf_path
+
+        self.logger.info(
+            f"Rendering {package['shot_id']} (take {current_take}) with MiniMax-H3 via ComfyUI"
+        )
+
+        try:
+            vplib = VPLib(self.config)
+            result = vplib.render_video(
+                prompt=package["full_prompt"],
+                width=width,
+                height=height,
+                num_frames=num_frames,
+                output_path=final_path,
+                first_frame=first_frame,
+            )
+
+            if result and Path(result).exists():
+                result_path = Path(result)
+                if result_path != final_path:
+                    import shutil
+                    shutil.copy(result_path, final_path)
+                package["status"] = "rendered"
+                package["rendered_file"] = str(final_path)
+                package["retry_count"] = retry_count
+                package["last_error"] = None
+            else:
+                raise RuntimeError("No video produced")
         except Exception as e:
             self.logger.error(f"Render exception: {e}")
             if retry_count < max_retries:

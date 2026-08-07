@@ -383,19 +383,67 @@ class VPLib:
             num_frames: int = 96,
             num_inference_steps: int = 8,
             guidance_scale: float = 3.5,
-    ) -> "Image.Image | None":
+            output_path: "Path | str | None" = None,
+            first_frame: "Image.Image | Path | str | None" = None,
+            seed: int = 0,
+    ) -> "list[Image.Image] | Path | None":
+        """Render a video with the configured backend.
+
+        Backend is selected via ``config["wan2gp"]["video"]``:
+
+        - ``ltx-2`` (default): diffusers ``LTXVideoPipeline``. Returns a list of
+          PIL frames (decode later with moviepy/cv2).
+        - ``minimax-h3``: ComfyUI running the quantized MiniMax-H3 GGUF model.
+          Returns the path of the finished mp4 (video + native audio).
+
+        ``output_path`` and ``first_frame`` only apply to the ComfyUI backend.
+        """
+        video_backend = self.config.get("wan2gp", {}).get("video", "ltx-2")
+        if video_backend in ("minimax-h3", "minimax_h3", "minimax"):
+            return self.render_video_minimax_h3(
+                prompt=prompt,
+                width=width,
+                height=height,
+                num_frames=num_frames,
+                first_frame=first_frame,
+                seed=seed,
+                output_path=output_path,
+            )
+        return self._render_video_ltx(
+            prompt=prompt,
+            negative_prompt=negative_prompt,
+            width=width,
+            height=height,
+            num_frames=num_frames,
+            num_inference_steps=num_inference_steps,
+            guidance_scale=guidance_scale,
+        )
+
+    def _render_video_ltx(
+            self,
+            prompt: str,
+            negative_prompt: str = "anime, cartoon, low quality, distorted",
+            width: int = 1280,
+            height: int = 704,
+            num_frames: int = 96,
+            num_inference_steps: int = 8,
+            guidance_scale: float = 3.5,
+    ) -> "list[Image.Image] | None":
         from diffusers import LTXVideoPipeline
         import torch
 
         try:
-            pipeline = LTXVideoPipeline.from_pretrained(
-                "Lightricks/LTX-2",
-                torch_dtype=torch.bfloat16,
-            )
-            pipeline.enable_sequential_cpu_offload()
-            pipeline.enable_vae_spatial_tiling()
+            if not hasattr(self, "_ltx_pipe"):
+                self.logger.info("Loading LTX-2 pipeline (kept resident)")
+                self._ltx_pipe = LTXVideoPipeline.from_pretrained(
+                    "Lightricks/LTX-2",
+                    torch_dtype=torch.bfloat16,
+                )
+                self._ltx_pipe.enable_sequential_cpu_offload()
+                self._ltx_pipe.enable_vae_spatial_tiling()
+            pipeline = self._ltx_pipe
 
-            self.logger.info(f"Rendering: {num_frames} frames, {width}x{height}")
+            self.logger.info(f"Rendering (LTX-2): {num_frames} frames, {width}x{height}")
 
             output = pipeline(
                 prompt=prompt,
@@ -411,4 +459,310 @@ class VPLib:
 
         except Exception as e:
             self.logger.error(f"Render failed: {e}")
+            return None
+
+    # ------------------------------------------------------------------
+    # ComfyUI backend (quantized MiniMax-H3)
+    # ------------------------------------------------------------------
+
+    @staticmethod
+    def _snap_frame_count(num_frames: int) -> int:
+        """Snap a frame count up to MiniMax-H3's 17k+5 grid (ComfyUI alignment)."""
+        n = max(int(num_frames), 5)
+        while n % 17 != 5:
+            n += 1
+        return n
+
+    def _comfyui_url(self) -> str:
+        url = self.config.get("comfyui", {}).get("url") or ""
+        return url.rstrip("/")
+
+    def _comfyui_build_workflow(
+            self,
+            prompt: str,
+            width: int,
+            height: int,
+            length: int,
+            first_frame_name: "str | None" = None,
+            seed: int = 0,
+    ) -> dict:
+        """Build a ComfyUI API-format workflow for MiniMax-H3 T2V/FL2V.
+
+        Mirrors the official Comfy-Org 'MiniMax H3 T2V' template but uses the
+        GGUF loaders from ComfyUI-GGUF so Abiray/MiniMax-H3-GGUF checkpoints work.
+        """
+        cfg = self.config.get("comfyui", {}) or {}
+        unet = cfg.get("unet", "MiniMax-H3-FL2VA-Q4_K_M.gguf")
+        text_encoder = cfg.get("text_encoder", "qwen3vl_32b_minimax_h3-Q4_K_M.gguf")
+        video_vae = cfg.get("video_vae", "minimax_h3_video_vae_fp16.safetensors")
+        audio_vae = cfg.get("audio_vae", "minimax_h3_audio_vae_fp32.safetensors")
+        steps = int(cfg.get("steps", 25))
+        scheduler = cfg.get("scheduler", "simple")
+        sampler = cfg.get("sampler", "res_multistep")
+        weight_dtype = cfg.get("weight_dtype", "default")
+
+        def node(class_type: str, inputs: dict) -> dict:
+            return {"class_type": class_type, "inputs": inputs}
+
+        wf: dict = {}
+
+        if unet.lower().endswith(".gguf"):
+            wf["unet"] = node("UnetLoaderGGUF", {"unet_name": unet})
+        else:
+            wf["unet"] = node("UNETLoader", {"unet_name": unet, "weight_dtype": weight_dtype})
+
+        if text_encoder.lower().endswith(".gguf"):
+            wf["clip"] = node("CLIPLoaderGGUF", {"clip_name": text_encoder, "type": "minimax"})
+        else:
+            wf["clip"] = node("CLIPLoader", {"clip_name": text_encoder, "type": "minimax", "device": "default"})
+
+        wf["vae_video"] = node("VAELoader", {"vae_name": video_vae})
+        wf["vae_audio"] = node("VAELoader", {"vae_name": audio_vae})
+
+        if first_frame_name:
+            wf["first_frame"] = node("LoadImage", {"image": first_frame_name})
+
+        mini_inputs: dict = {
+            "clip": ["clip", 0],
+            "vae": ["vae_video", 0],
+            "prompt": prompt,
+            "width": width,
+            "height": height,
+            "length": length,
+        }
+        if first_frame_name:
+            mini_inputs["first_frame"] = ["first_frame", 0]
+        wf["mini"] = node("MiniMaxH3ImageToVideo", mini_inputs)
+
+        wf["noise"] = node("RandomNoise", {"noise_seed": seed, "noise_mode": "randomize"})
+        wf["sched"] = node(
+            "BasicScheduler",
+            {"scheduler": scheduler, "steps": steps, "denoise": 1.0, "model": ["unet", 0]},
+        )
+        wf["ks"] = node("KSamplerSelect", {"sampler_name": sampler})
+        wf["guider"] = node("BasicGuider", {"model": ["unet", 0], "conditioning": ["mini", 0]})
+        wf["sampler"] = node(
+            "SamplerCustomAdvanced",
+            {
+                "noise": ["noise", 0],
+                "guider": ["guider", 0],
+                "sampler": ["ks", 0],
+                "sigmas": ["sched", 0],
+                "latent_image": ["mini", 1],
+            },
+        )
+        wf["decode"] = node("VAEDecode", {"samples": ["sampler", 0], "vae": ["vae_video", 0]})
+        wf["decode_audio"] = node("VAEDecodeAudio", {"samples": ["sampler", 0], "vae": ["vae_audio", 0]})
+        wf["create"] = node(
+            "CreateVideo",
+            {"fps": 24.0, "images": ["decode", 0], "audio": ["decode_audio", 0]},
+        )
+        wf["save"] = node(
+            "SaveVideo",
+            {"filename_prefix": "vid_harness", "format": "auto", "video": ["create", 0]},
+        )
+        return wf
+
+    def _comfyui_upload_image(self, image_path: Path, name: str) -> str:
+        """Upload an image to ComfyUI's input dir; returns the filename to reference."""
+        import requests
+
+        url = self._comfyui_url()
+        if not url:
+            raise RuntimeError("comfyui.url not configured in config.json")
+        with open(image_path, "rb") as f:
+            resp = requests.post(
+                f"{url}/upload/image",
+                files={"image": (name, f, "image/png")},
+                data={"type": "input", "overwrite": "true"},
+                timeout=60,
+            )
+        resp.raise_for_status()
+        return resp.json()["name"]
+
+    def _comfyui_submit(self, workflow: dict, client_id: str) -> str:
+        import requests
+
+        url = self._comfyui_url()
+        if not url:
+            raise RuntimeError("comfyui.url not configured in config.json")
+        resp = requests.post(
+            f"{url}/prompt",
+            json={"prompt": workflow, "client_id": client_id},
+            timeout=30,
+        )
+        resp.raise_for_status()
+        data = resp.json()
+        if data.get("node_errors"):
+            raise RuntimeError(f"ComfyUI workflow validation failed: {data['node_errors']}")
+        return data["prompt_id"]
+
+    def _comfyui_wait(self, client_id: str, prompt_id: str, timeout: int = 3600) -> dict:
+        """Wait for a ComfyUI prompt to finish; returns the first output file entry."""
+        import json
+        import time
+
+        import websocket
+
+        url = self._comfyui_url()
+        ws_url = url.replace("http://", "ws://").replace("https://", "wss://") + f"/ws?clientId={client_id}"
+        ws = websocket.create_connection(ws_url, timeout=10)
+        start = time.time()
+        try:
+            while time.time() - start < timeout:
+                remaining = timeout - (time.time() - start)
+                if remaining <= 0:
+                    break
+                ws.settimeout(min(10, remaining))
+                try:
+                    msg = ws.recv()
+                except websocket.WebSocketTimeoutException:
+                    continue
+                if not msg:
+                    continue
+                data = json.loads(msg)
+                etype = data.get("type")
+                edata = data.get("data", {})
+
+                if etype == "status":
+                    continue
+                if etype == "progress":
+                    value, max_ = edata.get("value"), edata.get("max")
+                    if max_:
+                        self.logger.info(f"ComfyUI progress: {value}/{max_} ({value / max_ * 100:.0f}%)")
+                    continue
+                if etype == "executing":
+                    if edata.get("prompt_id") == prompt_id and edata.get("node") is None:
+                        break
+                    continue
+                if etype == "executed" and edata.get("prompt_id") == prompt_id:
+                    output = edata.get("output") or {}
+                    for key, items in output.items():
+                        if isinstance(items, list):
+                            for item in items:
+                                if isinstance(item, dict) and item.get("filename"):
+                                    return item
+                    continue
+                if etype == "execution_error":
+                    raise RuntimeError(
+                        f"ComfyUI execution error: {edata.get('exception_message') or edata}"
+                    )
+                if etype == "execution_success" and edata.get("prompt_id") == prompt_id:
+                    break
+        finally:
+            ws.close()
+
+        # Fallback: read the output filename from the history endpoint.
+        item = self._comfyui_history_output(prompt_id)
+        if item:
+            return item
+        raise TimeoutError(f"ComfyUI prompt {prompt_id} did not produce an output within {timeout}s")
+
+    def _comfyui_history_output(self, prompt_id: str) -> dict | None:
+        import requests
+
+        url = self._comfyui_url()
+        try:
+            resp = requests.get(f"{url}/history/{prompt_id}", timeout=15)
+            resp.raise_for_status()
+            history = resp.json()
+        except Exception as e:
+            self.logger.warning(f"Could not read ComfyUI history: {e}")
+            return None
+        entry = (history.get(prompt_id) or {}).get("outputs", {})
+        for _, node_out in entry.items():
+            if isinstance(node_out, dict):
+                for key in ("video", "images", "gifs"):
+                    items = node_out.get(key) or []
+                    for item in items:
+                        if isinstance(item, dict) and item.get("filename"):
+                            return item
+        return None
+
+    def _comfyui_fetch(self, item: dict, output_path: Path) -> Path:
+        import requests
+
+        url = self._comfyui_url()
+        params = {
+            "filename": item["filename"],
+            "type": item.get("type", "output"),
+            "subfolder": item.get("subfolder", ""),
+        }
+        with requests.get(f"{url}/view", params=params, timeout=600, stream=True) as resp:
+            resp.raise_for_status()
+            with open(output_path, "wb") as f:
+                for chunk in resp.iter_content(chunk_size=1 << 16):
+                    if chunk:
+                        f.write(chunk)
+        return output_path
+
+    def render_video_minimax_h3(
+            self,
+            prompt: str,
+            width: int = 1280,
+            height: int = 704,
+            num_frames: int = 96,
+            first_frame: "Image.Image | Path | str | None" = None,
+            seed: int = 0,
+            output_path: "Path | str | None" = None,
+            timeout: int = 3600,
+    ) -> Path | None:
+        """Render via ComfyUI using the quantized MiniMax-H3 (Abiray GGUF).
+
+        Returns the path to the finished mp4 (video with native stereo audio),
+        or None on failure.
+        """
+        import tempfile
+        import time
+        import uuid
+
+        try:
+            url = self._comfyui_url()
+            if not url:
+                self.logger.error("MiniMax-H3 backend requires comfyui.url in config.json")
+                return None
+
+            if output_path is None:
+                output_path = Path(tempfile.mkdtemp()) / f"minimax_h3_{int(time.time())}.mp4"
+            output_path = Path(output_path)
+            output_path.parent.mkdir(parents=True, exist_ok=True)
+
+            width = max(32, (int(width) + 15) // 32 * 32)
+            height = max(32, (int(height) + 15) // 32 * 32)
+            length = self._snap_frame_count(num_frames)
+            self.logger.info(
+                f"Rendering (MiniMax-H3 via ComfyUI): {length} frames (~{length / 24:.1f}s), {width}x{height}"
+            )
+
+            client_id = str(uuid.uuid4())
+
+            first_frame_name = None
+            if first_frame is not None:
+                tmp_img = None
+                if hasattr(first_frame, "save"):
+                    tmp_img = Path(tempfile.mkdtemp()) / "h3_first_frame.png"
+                    first_frame.save(tmp_img)
+                else:
+                    src = Path(first_frame)
+                    if src.exists():
+                        tmp_img = src
+                if tmp_img is not None:
+                    first_frame_name = self._comfyui_upload_image(
+                        tmp_img, f"h3_first_{uuid.uuid4().hex[:8]}.png"
+                    )
+                    self.logger.info(f"Uploaded first frame as {first_frame_name}")
+
+            workflow = self._comfyui_build_workflow(
+                prompt, width, height, length, first_frame_name, seed
+            )
+            prompt_id = self._comfyui_submit(workflow, client_id)
+            self.logger.info(f"ComfyUI prompt {prompt_id} queued")
+
+            item = self._comfyui_wait(client_id, prompt_id, timeout=timeout)
+            self._comfyui_fetch(item, output_path)
+            self.logger.info(f"Saved MiniMax-H3 render: {output_path}")
+            return output_path
+
+        except Exception as e:
+            self.logger.error(f"MiniMax-H3 render failed: {e}")
             return None
